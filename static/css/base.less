@@ -1,0 +1,361 @@
+*{
+  margin:0;
+  padding:0;
+  -webkit-tap-highlight-color: transparent;
+}
+html {
+  background: @f5f;
+  max-width: 100%;
+  margin: 0 auto;
+}
+.grey-main {
+	filter: progid:DXImageTransform.Microsoft.BasicImage(grayscale=1);
+	-webkit-filter: grayscale(100%);
+	height: 100vh;
+}
+img {
+	width: 100%;
+}
+.single-h5 {
+	img, image {
+		max-width: 100%;
+	}
+}
+.number-style {
+	font-weight: 500;
+}
+.bg-white {
+  width: 100%;
+  height: 100%;
+  position: fixed;
+  background-color: #ffffff;
+  left: 0;
+}
+.bg-white-btn {
+	width: 100%;
+	background-color: #ffffff;
+}
+input, textarea {
+  -webkit-tap-highlight-color: rgba(255, 255, 255, 0); 
+  -webkit-user-select: none;
+  -moz-user-focus: none;
+  -webkit-appearance:none;
+  outline: none;
+  border: none;
+}
+input[type='password'] {
+  letter-spacing: 17upx;
+  font-size: 20px;
+  .pla-text-fs14-color;
+  .font-def-color;
+}
+input[type='password']::-webkit-input-placeholder {
+  letter-spacing: 0;
+}
+input[type="search"]{
+	-webkit-appearance:none;
+}
+[type="search"]::-webkit-search-decoration {  
+	display: none;  
+}
+input::-webkit-search-cancel-button {
+	display: none;
+}
+.phone {
+	input[type='password'] {
+		letter-spacing: 0;
+	}
+}
+@fff: #ffffff;
+@f5f: #f5f5f5;
+@ccc: #cccccc;
+@def-dis-normal: #d0d0d0;
+@def-dis: #E69C9F;
+@def: #ea3131;
+@666: #666666;
+.def-bg {
+  background-color: @def;
+}
+.dis-def-bg {
+  background-color: @def-dis;
+}
+.dis-def-bg-normal {
+  background-color: @def-dis-normal;
+}
+.bg-color(@val) {
+  background-color: @val;
+}
+.bg-image(@url){
+  background: ~"url('https://img.app.fuduoka.com/h5/img/icon/@{url}.png') no-repeat";
+  background-size: cover;
+  background-position: center;
+}
+.border-radius(@val) {
+  border-radius: ~"@{val}";
+}
+.radius-box(@w, @h, @r) {
+  width: ~"@{w}";
+  height: ~"@{h}";
+  .border-radius(@r);
+}
+
+.inline {
+  display: -webkit-box;
+}
+.border-box {
+  box-sizing: border-box;
+}
+.position-rel {
+  position: relative;
+}
+.position-abs {
+  position: absolute;
+}
+.fl {
+  float: left;
+}
+.fr {
+  float: right;
+}
+.clearfix:after{
+  content: "";
+  display: block;
+  height: 0;
+  clear:both;
+  visibility: hidden;
+}
+.clearfix{
+  zoom: 1;
+}
+.flex {
+  display: flex;
+}
+.align {
+  align-items: center;
+}
+.center {
+  justify-content: center;
+}
+.warp {
+  flex-wrap: wrap;
+}
+
+.text-center {
+  text-align: center;
+}
+.text-left {
+  text-align: left;
+}
+
+// font
+.font-lighter(@val) {
+  .fs(@val);
+  color: @ccc;
+}
+.font-link(@val) {
+  .fs(@val);
+  color: #168EF3;
+}
+.font-black {
+  .font-color(black);
+}
+.font-dis-color {
+  .font-color(#cccccc);
+}
+.font-def-color {
+  .font-color(#333333);
+}
+.font-lighter {
+  color: @666;
+}
+.font-light-def {
+  color: #424242;
+}
+.white-color {
+  color: #ffffff;
+}
+.fs(@val) {
+  font-size: @val;
+}
+.fs11 {
+  .fs12;
+  transform: scale(0.91);
+  -webkit-transform-origin-x: 0;
+}
+.fs12 {
+  font-size: 12px;
+}
+.fs13 {
+  font-size: 13px;
+}
+.fs14 {
+  font-size: 14px;
+}
+.fs15 {
+  font-size: 15px;
+}
+.fs16 {
+  font-size: 16px;
+}
+.fs17 {
+	font-size: 24upx;
+	transform: scale(0.7);
+	-webkit-transform-origin-x: center;
+}
+.fs20 {
+  font-size: 20px;
+}
+.fs34 {
+	font-size: 34upx;
+}
+.fs36 {
+	font-size: 36upx;
+}
+.fs60 {
+  font-size: 60upx;
+}
+.fs62 {
+  font-size: 62upx;
+}
+.fs64 {
+  font-size: 64upx;
+}
+.fs66 {
+  font-size: 66upx;
+}
+.fs70 {
+  font-size: 70upx;
+}
+.fs86 {
+  font-size: 86upx;
+}
+.fs90 {
+  font-size: 90upx;
+}
+.fs94 {
+  font-size: 94upx;
+}
+.fs100 {
+  font-size: 100upx;
+}
+.fwb {
+  font-weight: 500;
+}
+.fwl {
+  font-weight: 400;
+}
+.fwl300 {
+  font-weight: 300;
+}
+.fwler {
+  font-weight: 200;
+	margin-right: 6upx;
+}
+.font-color(@val) {
+  color: ~"@{val}";
+}
+.font-style(@size, @color) {
+  font-size: ~"@{size}";
+  color: ~"@{color}";
+}
+.pla-text-color {
+  .fs(15px);
+  color: @ccc;
+}
+.pla-text-fs14-color {
+  .fs(14px);
+  color: @ccc;
+}
+.border-b {
+  border-bottom: 1px solid rgba(170,170,170,1);
+}
+.field-input {
+  .van-cell {
+    .fs15;
+    .font-def-color;
+    padding: 14px 20px;
+    .van-field__control::placeholder {
+      color: #AEAEAE;
+    }
+    .van-field__control {
+      .font-def-color;
+    }
+    .van-field__right-icon {
+      .flex;
+    }
+    .van-icon-arrow::before {
+      content: "";
+      background: url('https://img.app.fuduoka.com/h5/img/icon/rigth_arrow.png') no-repeat center;
+      background-size: 9px auto;
+      width: 9px;
+      height: 17px;
+      margin-left: 7px;
+    }
+  }
+}
+// tab
+.van-tabs {
+  .van-tabs__line {
+    height: 2px;
+    background-color: rgba(204,54,60,1);
+    border-radius: 0;
+  }
+}
+// button
+.reset-btn {
+	padding: 0;
+	background-color: transparent;
+	font-size: 26upx;
+	line-height: initial;
+	border-radius: 0;
+}
+.service-btn {
+	height: initial !important;
+	line-height: initial !important;
+	border-radius: 0 !important;
+	color: #333333;
+}
+.van-button--small {
+  width: 80px;
+  line-height: 30px;
+  border-radius:5px;
+}
+.van-button--default {
+  border: 1px solid rgba(203,203,203,1);
+  .fs14;
+  color: @666;
+}
+.van-button--danger {
+  background:rgba(204,54,60,1);
+  border: 1px solid rgba(204,54,60,1);
+  .fs14;
+}
+.fdd-button-small {
+  .radius-box(96px, 30px, 5px);
+  border:1px solid rgba(204,204,204,1);
+  .fs13;
+  text-align: -webkit-center;
+  line-height: 30px;
+}
+
+
+// swiper
+.swiper-page-size {
+	background: rgba(0,0,0, .3);
+	border-radius: 30upx;
+	bottom: 28upx;
+	right: 24upx;
+	padding: 4upx 24upx;
+	color: rgba(255,255,255,.6);
+	font-family: Helvetica;
+	.zone {
+		padding: 0 4upx 0 2upx;
+	}
+}
+
+.search-drawer .uni-drawer__content {
+	width: 88% !important;
+}
+.height-2 {
+	height: 2upx; // 最底下间距显示不出来
+}

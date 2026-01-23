@@ -1,0 +1,180 @@
+{
+	"pages": [
+		//#ifdef H5
+		{
+			"path": "pages/home/home",
+			"style": {
+				"navigationStyle": "custom",
+				"disableScroll": true,
+				"app-plus" : {
+					"bounce" : "none"
+				},
+				"mp-alipay":{"allowsBounceVertical":"NO"}
+			}
+		},
+		//#endif
+		//#ifndef H5
+		{
+			"path": "pages/home/home",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "首页",
+				"disableScroll": true,
+				"app-plus" : {
+					"bounce" : "none"
+				},
+				"mp-alipay":{"allowsBounceVertical":"NO"}
+			}
+		},
+		//#endif
+	//#ifdef H5
+	{
+		"path": "pages/user/user",
+		"style": {
+			"navigationStyle": "custom",
+			"disableScroll": true,
+			"app-plus" : {
+				"bounce" : "none"
+			},
+			"mp-alipay":{"allowsBounceVertical":"NO"}
+		}
+	},
+	//#endif
+	//#ifndef H5
+	{
+		"path": "pages/user/home",
+		"style": {
+			"navigationStyle": "custom",
+			"navigationBarTitleText": "首页",
+			"disableScroll": true,
+			"app-plus" : {
+				"bounce" : "none"
+			},
+			"mp-alipay":{"allowsBounceVertical":"NO"}
+		}
+	},
+	//#endif
+		{
+			"path": "pages/home/myclass",
+			"style": {
+				"navigationBarTitleText": "我的班级"
+			}
+		}, {
+			"path": "pages/home/myclassroom",
+			"style": {
+				"navigationBarTitleText": "我的课堂"
+			}
+		}, {
+			"path": "pages/home/myzuoye",
+			"style": {
+				"navigationBarTitleText": "我的作业"
+			}
+		}, {
+			"path": "pages/home/myclasshour",
+			"style": {
+				"navigationBarTitleText": "我的课时"
+			}
+		}, {
+			"path": "pages/home/message",
+			"style": {
+				"navigationBarTitleText": "家校消息"
+			}
+		}, {
+			"path": "pages/home/quickzf",
+			"style": {
+				"navigationBarTitleText": "学生缴费"
+			}
+		}, {
+			"path": "pages/user/about",
+			"style": {
+				"navigationStyle": "custom",
+				"disableScroll": true,
+				"app-plus" : {
+					"bounce" : "none"
+				},
+				"mp-alipay":{"allowsBounceVertical":"NO"}
+			}
+
+		}, {
+			"path": "pages/user/myinfo",
+			"style": {
+				"navigationBarTitleText": "学生个人信息"
+			}
+		}, {
+			"path": "pages/user/login",
+			"style": {
+				"navigationBarTitleText": "",
+				"enablePullDownRefresh": false
+			}
+		}, {
+			"path": "pages/user/bindPhone",
+			"style": {
+				"navigationBarTitleText": "",
+				"enablePullDownRefresh": false
+			}
+
+		}, {
+			"path": "pages/user/register",
+			"style": {
+				"navigationBarTitleText": "",
+				"enablePullDownRefresh": false
+			}
+		}, {
+			"path": "pages/home/messageDetail",
+			"style": {
+				"navigationBarTitleText": "家校消息详情"
+			}
+		}, {
+			"path": "pages/home/myzuoyeDetail",
+			"style": {
+				"navigationBarTitleText": "我的作业详情"
+			}
+		},
+		{
+			"path" : "pages/home/order",
+			"style" : 
+			{
+				"navigationBarTitleText" : "我的订单"
+			}
+		},
+		{
+			"path" : "pages/home/myclasshourDetail",
+			"style" : 
+			{
+				"navigationBarTitleText" : "我的课时详情"
+			}
+		},
+		{
+			"path" : "pages/home/courseapply",
+			"style" : 
+			{
+				"navigationBarTitleText" : "调课申请"
+			}
+		}
+	],
+	"globalStyle": {
+		"navigationBarTextStyle": "black",
+		"navigationBarTitleText": "uni-app",
+		"navigationBarBackgroundColor": "#F8F8F8",
+		"backgroundColor": "#F8F8F8"
+	},
+	"tabBar": {
+		"borderStyle": "black",
+		"backgroundColor": "#fff",
+		"color": "#8F8F94",
+		"selectedColor": "#24AA7D",
+		"list": [{
+				"pagePath": "pages/home/home",
+				"iconPath": "static/img/tabbar/homeunselect.png",
+				"selectedIconPath": "static/img/tabbar/home.png",
+				"text": "首页"
+			},
+			{
+				"pagePath": "pages/user/user",
+				"iconPath": "static/img/tabbar/userunselect.png",
+				"selectedIconPath": "static/img/tabbar/user.png",
+				"text": "我的"
+			}
+		]
+	}
+}
