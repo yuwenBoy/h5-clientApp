@@ -114,13 +114,7 @@
 				"enablePullDownRefresh": false
 			}
 
-		}, {
-			"path": "pages/user/register",
-			"style": {
-				"navigationBarTitleText": "",
-				"enablePullDownRefresh": false
-			}
-		}, {
+		},  {  
 			"path": "pages/home/messageDetail",
 			"style": {
 				"navigationBarTitleText": "家校消息详情"
