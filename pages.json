@@ -104,7 +104,8 @@
 			"path": "pages/user/login",
 			"style": {
 				"navigationBarTitleText": "",
-				"enablePullDownRefresh": false
+				"enablePullDownRefresh": false,
+				"navigationStyle": "custom"  // 自定义导航栏，完全隐藏原生导航栏
 			}
 		}, {
 			"path": "pages/user/bindPhone",

@@ -114,10 +114,8 @@
    methods: {
      // 发送验证码
      async sendCode() {
-			 console.log('发送验证码')
        if (!this.isPhoneValid) {
-				 console.log('111')
-				 this.$utils.toast('请输入正确手机号')
+		 this.$utils.toast('请输入正确手机号')
          return false;
        }
        
@@ -126,13 +124,12 @@
        
        try {
          // 调用接口发送验证码
-				 const res = await this.$request.post(this.$apis.user.sendSmsCode,{ phone: this.phone })
-				 console.log(res)
+          const res = await this.$request.post(this.$apis.user.sendSmsCode,{ phone: this.phone })
          if (res.code === 0) {
            this.$utils.toast('验证码已发送');
            this.startCountDown();
          } else {
-           uni.showToast({ title: res.msg || '发送失败', icon: 'none' });
+           this.$utils.toast('发送失败');
          }
        } catch (error) {
           this.$utils.toast(error && error.data.message || '网络错误');
@@ -143,7 +140,6 @@
      startCountDown() {
        this.isCounting = true;
        this.countDown = 60;
-       
        this.timer = setInterval(() => {
          this.countDown--;
          if (this.countDown <= 0) {
@@ -160,22 +156,21 @@
        this.$utils.toast('登录中...');
        
        try {
-			  	const res = await this.$request.post(this.$apis.user.loginByPhone,{ phone: this.phone,code: this.code })
-					console.log(res)
+		  const res = await this.$request.post(this.$apis.user.loginByPhone,{ phone: this.phone,code: this.code })
           if (res.code === 0) {
            // 保存 token 和用户信息
            uni.setStorageSync('token', res.result.data.token);
            uni.setStorageSync('userInfo', res.result.data.userInfo);
-					 this.$utils.toast(res.result && res.result.data.msg || '网络错误');
+		   this.$utils.toast(res.result && res.result.msg || '网络错误');
            // 跳转首页
            setTimeout(() => {
-             uni.switchTab({ url: '/pages/index/index' });
+             uni.switchTab({ url: '/pages/home/home' });
            }, 1500);
          } else {
-           uni.showToast({ title: res.msg || '登录失败', icon: 'none' });
+           this.$utils.toast('登录失败');
          }
        } catch (error) {
-				 console.log(error)
+		 console.log(error)
          this.$utils.toast(error && error.data.message || '网络错误');
        } finally {
          uni.hideLoading();

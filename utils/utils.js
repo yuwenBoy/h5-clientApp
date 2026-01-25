@@ -5,7 +5,7 @@
 	export function toLogin(){
 		// #ifdef MP-WEIXIN
 		Router.push({
-			path: '/pages/business/user/login/login'
+			path: '/pages/user/login'
 		})
 		// #endif
 		Router.push({name:'login'})

@@ -11,7 +11,7 @@ import router from '../../router/index.js'
  */
 export default class Request {
 	config = {
-		baseUrl: '',
+		baseUrl: 'basic-api',
 		header: {
 			// 'content-type': 'application/json'
 			'content-type': 'application/x-www-form-urlencoded'
@@ -195,7 +195,6 @@ export default class Request {
 							}
 						}
 						response.config = handleRe
-						debugger
 						if (this.validateStatus(response.statusCode)) { // 成功
 							response = this.requestComFun(response)						
 							resolve(response)
