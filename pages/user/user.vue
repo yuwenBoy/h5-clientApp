@@ -5,13 +5,13 @@
 			<view class="top-content">
 				 <view class="box">
 					 <image src="../../static/img/logo.png"></image>
-					 <view class="fs32">号家军</view>
+					 <view class="fs32">顾客端</view>
 				 </view>
 			</view>
 			<view class="user-list">
 				<view class="user-list-item" @click="toMyInfo">
 					<view class="left-icon info"></view>
-					<text class="info-text">学生个人信息</text>
+					<text class="info-text">地址</text>
 					<uni-icons :size="20" class="uni-icon-wrapper" color="#bbb" type="arrowright" />
 				</view>
 				<view class="user-list-item">
@@ -29,11 +29,11 @@
 					<text class="info-text">登录/注册</text>
 					<uni-icons :size="20" class="uni-icon-wrapper" color="#bbb" type="arrowright" />
 				</view>
-				<view class="user-list-item" @click="toAbout">
+				<!-- <view class="user-list-item" @click="toAbout">
 					<view class="left-icon about"></view>
 					<text class="info-text">关于号家军</text>
 					<uni-icons :size="20" class="uni-icon-wrapper" color="#bbb" type="arrowright" />
-				</view>
+				</view> -->
 			</view>
 		</view>
 	</scroll-view>

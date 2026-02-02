@@ -4,7 +4,8 @@ import { request } from './luch-request_1.0.6/request.js';
 // 首页
 const index = {
 	pms_index: '/app/Index/pms_index', // 首页
-	test:'/auth/test'
+	test:'/auth/test',
+	storeList:'/client/home/storeList', // 门店列表接口
 }
 
 
