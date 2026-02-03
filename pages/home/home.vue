@@ -33,23 +33,23 @@
          <view class="store-list" v-if="storeList.length > 0">
            <view class="store-item" v-for="(store, index) in storeList" :key="store.id" @click="toStoreDetail(store)">
              <!-- 商家图片 -->
-             <image class="store-image" :src="store.logo" mode="aspectFill" />
+             <image class="store-image" :src="store.logo || 'http://image.jxxqz.com:3001/fc57d5031095495fae039977ec738d01.jpeg'" mode="aspectFill" />
              
              <!-- 商家信息 -->
              <view class="store-info">
                <view class="store-header">
-                 <text class="store-name">{{ store.name }}</text>
-                 <text class="store-distance">{{ store.distance }}km</text>
+                 <text class="store-name">{{ store.storeName }}</text>
+                 <text class="store-distance">{{ store.distance || 1 }}km</text>
                </view>
                
                <view class="store-meta">
-                 <text class="rating">⭐ {{ store.rating }}</text>
-                 <text class="sales">月售{{ store.monthly_sales }}</text>
+                 <text class="rating">⭐ {{ store.rating || 3 }}</text>
+                 <text class="sales">月售{{ store.monthly_sales || 1000 }}</text>
                </view>
                
                <view class="store-delivery">
-                 <text class="delivery-fee">配送 ¥{{ store.delivery_fee }}</text>
-                 <text class="min-order">起送 ¥{{ store.min_order_amount }}</text>
+                 <text class="delivery-fee">配送 ¥{{ store.delivery_fee || 1.5 }}</text>
+                 <text class="min-order">起送 ¥{{ store.min_order_amount || 15 }}</text>
                </view>
                
                <view class="store-tags" v-if="store.tags">
@@ -125,20 +125,20 @@
        // 调用接口获取商家列表
        this.$request.post(this.$apis.index.storeList,params).then(res => {
          // 接口返回的curPageData必须为数组
-         // const curPageData = res.data.list || [];
-         // const totalSize = res.data.total || 0;
+         const curPageData = res.result.content || [];
+         const totalSize = res.result.totalElements || 0;
          
-         // // 如果是第一页，清空数据
-         // if (page.num === 1) {
-         //   this.storeList = [];
-         // }
+         // 如果是第一页，清空数据
+         if (page.num === 1) {
+           this.storeList = [];
+         }
          
-         // // 追加数据
-         // this.storeList = this.storeList.concat(curPageData);
-         // this.isLoaded = true;
+         // 追加数据
+         this.storeList = this.storeList.concat(curPageData);
+         this.isLoaded = true;
          
-         // // 告诉mescroll加载成功
-         // this.mescroll.endSuccess(curPageData.length, totalSize);
+         // 告诉mescroll加载成功
+         this.mescroll.endSuccess(curPageData.length, totalSize);
        }).catch(err => {
          console.error('加载失败', err);
          // 告诉mescroll加载失败
