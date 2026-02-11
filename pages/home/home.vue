@@ -33,44 +33,49 @@
     <!-- 5. 推荐商家列表 -->
     <view class="store-section">
       <view class="section-title">附近商家</view>
+      <view class="store-list-wrapper">
+				<!-- Mescroll组件 -->
+				<mescroll-uni ref="mescrollRef" @init="mescrollInit" @down="downCallback" @up="upCallback" :top="'auto'" :height="'auto'" :fixed="false"  :toTop="{
+    offset: 300,                          // 滚动多少距离显示
+    duration: 300                         // 滚动动画时长
+  }">
+				  <!-- 数据列表 -->
+				  <view class="store-list" v-if="storeList.length > 0">
+				    <view class="store-item" v-for="(store, index) in storeList" :key="store.id" @click="toStoreDetail(store)">
+				      <!-- 商家图片 -->
+				      <image class="store-image" :src="store.logo || 'http://image.jxxqz.com:3001/fc57d5031095495fae039977ec738d01.jpeg'" mode="aspectFill" />
+				      
+				      <!-- 商家信息 -->
+				      <view class="store-info">
+				        <view class="store-header">
+									<text class="store-distance">{{ store.distance || 1 }}km · {{ store.delivery_time || '30分钟' }}</text>
+				        </view>
+				        
+				        <view class="store-meta">
+				          <text class="rating">⭐ {{ store.rating || 3 }}</text>
+				          <text class="sales">月售{{ store.monthly_sales || 1000 }}</text>
+				        </view>
+				        
+				        <view class="store-delivery">
+				          <text class="delivery-fee">配送 ¥{{ store.delivery_fee || 1.5 }}</text>
+				          <text class="min-order">起送 ¥{{ store.min_order_amount || 15 }}</text>
+				        </view>
+				        
+				        <view class="store-tags" v-if="store.tags">
+				          <text class="tag" v-for="tag in store.tags" :key="tag">{{ tag }}</text>
+				        </view>
+				      </view>
+				    </view>
+				  </view>
+				  
+				  <!-- 空数据状态 -->
+				  <view class="empty-box" v-if="storeList.length === 0 && isLoaded">
+				    <image class="empty-icon" src="/static/images/empty.png" mode="aspectFill" />
+				    <text class="empty-text">暂无附近商家</text>
+				  </view>
+				</mescroll-uni>
+			</view>
       
-      <!-- Mescroll组件 -->
-      <mescroll-uni ref="mescrollRef" @init="mescrollInit" @down="downCallback" @up="upCallback" :top="topBarHeight">
-        <!-- 数据列表 -->
-        <view class="store-list" v-if="storeList.length > 0">
-          <view class="store-item" v-for="(store, index) in storeList" :key="store.id" @click="toStoreDetail(store)">
-            <!-- 商家图片 -->
-            <image class="store-image" :src="store.logo || 'http://image.jxxqz.com:3001/fc57d5031095495fae039977ec738d01.jpeg'" mode="aspectFill" />
-            
-            <!-- 商家信息 -->
-            <view class="store-info">
-              <view class="store-header">
-								<text class="store-distance">{{ store.distance || 1 }}km · {{ store.delivery_time || '30分钟' }}</text>
-              </view>
-              
-              <view class="store-meta">
-                <text class="rating">⭐ {{ store.rating || 3 }}</text>
-                <text class="sales">月售{{ store.monthly_sales || 1000 }}</text>
-              </view>
-              
-              <view class="store-delivery">
-                <text class="delivery-fee">配送 ¥{{ store.delivery_fee || 1.5 }}</text>
-                <text class="min-order">起送 ¥{{ store.min_order_amount || 15 }}</text>
-              </view>
-              
-              <view class="store-tags" v-if="store.tags">
-                <text class="tag" v-for="tag in store.tags" :key="tag">{{ tag }}</text>
-              </view>
-            </view>
-          </view>
-        </view>
-        
-        <!-- 空数据状态 -->
-        <view class="empty-box" v-if="storeList.length === 0 && isLoaded">
-          <image class="empty-icon" src="/static/images/empty.png" mode="aspectFill" />
-          <text class="empty-text">暂无附近商家</text>
-        </view>
-      </mescroll-uni>
     </view>
   </view>
 </template>
@@ -275,20 +280,24 @@ export default {
 
 // 5. 商家区块
 .store-section {
-  background-color: #fff;
   margin-top: 20rpx;
-  height: calc(100vh - 180rpx);
   .section-title {
     padding: 30rpx;
     font-size: 32rpx;
     font-weight: bold;
     color: #333;
     border-bottom: 1rpx solid #eee;
+		background-color: #fff;
   }
+	.store-list-wrapper{
+		min-height: calc(100vh - 760rpx);
+		overflow: visible;
+	}
 }
 
 // 商家列表样式（保持不变）
 .store-list {
+	background-color: #f00 !important;  // 加 !important 强制生效
   .store-item {
     display: flex;
     padding: 30rpx;
