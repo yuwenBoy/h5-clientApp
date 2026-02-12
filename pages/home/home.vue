@@ -35,10 +35,7 @@
       <view class="section-title">附近商家</view>
       <view class="store-list-wrapper">
 				<!-- Mescroll组件 -->
-				<mescroll-uni ref="mescrollRef" @init="mescrollInit" @down="downCallback" @up="upCallback" :top="'auto'" :height="'auto'" :fixed="false"  :toTop="{
-    offset: 300,                          // 滚动多少距离显示
-    duration: 300                         // 滚动动画时长
-  }">
+				<mescroll-uni ref="mescrollRef" @init="mescrollInit" @down="downCallback" @up="upCallback" :top="'auto'" :height="'auto'" :fixed="false">
 				  <!-- 数据列表 -->
 				  <view class="store-list" v-if="storeList.length > 0">
 				    <view class="store-item" v-for="(store, index) in storeList" :key="store.id" @click="toStoreDetail(store)">
@@ -48,6 +45,7 @@
 				      <!-- 商家信息 -->
 				      <view class="store-info">
 				        <view class="store-header">
+									<text class="store-name">{{ store.storeName }}</text>
 									<text class="store-distance">{{ store.distance || 1 }}km · {{ store.delivery_time || '30分钟' }}</text>
 				        </view>
 				        
@@ -180,7 +178,7 @@ export default {
       });
     },
     toStoreDetail(store) {
-      uni.navigateTo({ url: `/pages/store/detail?id=${store.id}` });
+      uni.navigateTo({ url: `/pages/home/storeDetail?id=${store.id}` });
     },
     bannerClick(item) {
       if (item.link) uni.navigateTo({ url: item.link });
@@ -290,19 +288,19 @@ export default {
 		background-color: #fff;
   }
 	.store-list-wrapper{
-		min-height: calc(100vh - 760rpx);
+		min-height: calc(100vh - 860rpx);
 		overflow: visible;
 	}
 }
 
 // 商家列表样式（保持不变）
 .store-list {
-	background-color: #f00 !important;  // 加 !important 强制生效
   .store-item {
     display: flex;
     padding: 30rpx;
     border-bottom: 1rpx solid #f0f0f0;
 		margin-bottom: 10rpx;
+		background-color:#FFFFFF;  // 加 !important 强制生效
   }
   
   .store-image {

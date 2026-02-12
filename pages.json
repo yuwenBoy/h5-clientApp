@@ -55,9 +55,9 @@
 	},
 	//#endif
 		{
-			"path": "pages/home/myclass",
+			"path": "pages/order/orderSubmit",
 			"style": {
-				"navigationBarTitleText": "我的班级"
+				"navigationBarTitleText": "提交订单"
 			}
 		}, {
 			"path": "pages/home/myclassroom",
@@ -107,7 +107,12 @@
 				"enablePullDownRefresh": false,
 				"navigationStyle": "custom"  // 自定义导航栏，完全隐藏原生导航栏
 			}
-		}, {
+		},{
+		"path": "pages/im/index",
+		"style": {
+						"navigationBarTitleText": "消息"
+					}
+	}, {
 			"path": "pages/user/bindPhone",
 			"style": {
 				"navigationBarTitleText": "",
@@ -115,9 +120,9 @@
 			}
 
 		},  {  
-			"path": "pages/home/messageDetail",
+			"path": "pages/home/storeDetail",
 			"style": {
-				"navigationBarTitleText": "家校消息详情"
+				"navigationBarTitleText": "门店详情"
 			}
 		}, {
 			"path": "pages/home/myzuoyeDetail",
@@ -157,17 +162,23 @@
 		"borderStyle": "black",
 		"backgroundColor": "#fff",
 		"color": "#8F8F94",
-		"selectedColor": "#24AA7D",
+		"selectedColor": "#ff6b35",
 		"list": [{
 				"pagePath": "pages/home/home",
-				"iconPath": "static/img/tabbar/homeunselect.png",
-				"selectedIconPath": "static/img/tabbar/home.png",
+				"iconPath": "static/img/tabbar/home.png",
+				"selectedIconPath": "static/img/tabbar/home-selected.png",
 				"text": "首页"
 			},
 			{
+					"pagePath": "pages/im/index",
+					"iconPath": "static/img/tabbar/im.png",
+					"selectedIconPath": "static/img/tabbar/im-selected.png",
+					"text": "消息"
+				},
+			{
 				"pagePath": "pages/user/user",
-				"iconPath": "static/img/tabbar/userunselect.png",
-				"selectedIconPath": "static/img/tabbar/user.png",
+				"iconPath": "static/img/tabbar/my.png",
+				"selectedIconPath": "static/img/tabbar/my-selected.png",
 				"text": "我的"
 			}
 		]
