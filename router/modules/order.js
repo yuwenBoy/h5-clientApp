@@ -1,6 +1,6 @@
 const order =[{
-	path:'/pages/order/orderSubmit',
-	name:'im',
+	path:'/pages/order/confirm',
+	name:'orderConfirm',
 	meta: {
 		title: '提交订单',
 		hideLoading: true

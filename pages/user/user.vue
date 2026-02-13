@@ -57,7 +57,7 @@
 		methods: {
 			toMyInfo(e) {
 				this.$Router.push({
-					path: '/pages/user/myinfo'
+					path: '/pages/user/address'
 				})
 			},
 			toAbout(e) {

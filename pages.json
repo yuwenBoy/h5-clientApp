@@ -55,7 +55,7 @@
 	},
 	//#endif
 		{
-			"path": "pages/order/orderSubmit",
+			"path": "pages/order/confirm",
 			"style": {
 				"navigationBarTitleText": "提交订单"
 			}
@@ -96,9 +96,9 @@
 			}
 
 		}, {
-			"path": "pages/user/myinfo",
+			"path": "pages/user/address",
 			"style": {
-				"navigationBarTitleText": "学生个人信息"
+				"navigationBarTitleText": "地址管理"
 			}
 		}, {
 			"path": "pages/user/login",

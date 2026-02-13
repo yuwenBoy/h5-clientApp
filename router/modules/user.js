@@ -12,10 +12,10 @@ const user = [
 		title: '关于号家军'
 	}
 },{
-	path: '/pages/user/myinfo',
-	name: 'myinfo',
+	path: '/pages/user/address',
+	name: 'address',
 	meta: {
-		title: '学生个人信息'
+		title: '我的地址'
 	}
 },{
 	path: '/pages/user/login',
