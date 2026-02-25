@@ -57,7 +57,7 @@
 		methods: {
 			toMyInfo(e) {
 				this.$Router.push({
-					path: '/pages/user/myinfo'
+					path: '/pages/user/address'
 				})
 			},
 			toAbout(e) {
@@ -86,7 +86,7 @@
 <style lang="less" scoped>
 	.myinfo {
 		.top-content {
-	  	background: linear-gradient(to bottom, #03A9F4, #00BCD4);
+	  	background:linear-gradient(90deg, #ff6b35 0%, #f7931e 100%);
 			width: 100%;
 			height: 300upx;
 			background-size: 100% auto;

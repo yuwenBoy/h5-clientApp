@@ -7,12 +7,6 @@ const home =[{
 		hideLoading: true
 	},
 },{
-	path:'/pages/home/myclass',
-	name:'myclass',
-	meta:{
-		title:'我的班级'
-	}
-},{
 	path:'/pages/home/myclassroom',
 	name:'myclassroom',
 	meta: {
@@ -57,10 +51,10 @@ const home =[{
 		title:'家校消息'
 	}
 },{
-	path:'/pages/home/messageDetail',
-	name:'messageDetail',
+	path:'/pages/home/storeDetail',
+	name:'storeDetail',
 	meta:{
-		title:'家校消息详情'
+		title:'门店详情'
 	}
 },{
 	path:'/pages/home/quickzf',

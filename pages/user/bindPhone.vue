@@ -12,7 +12,9 @@
 			}
 		},
 		methods: {
-			
+			canSubmit(){
+				this.$router.push({	path: '/pages/order/confirm'})
+			}
 		}
 	}
 </script>
