@@ -60,9 +60,9 @@
 				"navigationBarTitleText": "提交订单"
 			}
 		}, {
-			"path": "pages/home/myclassroom",
+			"path": "pages/home/category",
 			"style": {
-				"navigationBarTitleText": "我的课堂"
+				"navigationBarTitleText": "分类"
 			}
 		}, {
 			"path": "pages/home/myzuoye",
@@ -145,10 +145,10 @@
 			}
 		},
 		{
-			"path" : "pages/home/courseapply",
+			"path" : "pages/home/search",
 			"style" : 
 			{
-				"navigationBarTitleText" : "调课申请"
+				"navigationBarTitleText" : "搜索"
 			}
 		}
 	],
