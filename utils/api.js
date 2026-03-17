@@ -16,12 +16,29 @@ const user = {
  sendSmsCode:'/client/user/sendCode',
   // 手机号登录
  loginByPhone:'/client/user/login',
- // 微信登录
- wxLogin:'/auth/login/wechat' 
-};
+ // 获取地址详情
+ getAddressDetail:'/client/address/detail',
+ // 编辑地址
+ editAddress:'/client/address/edit',
+ // 新增地址
+ addAddress:'/client/address/add',
+ // 获取地址列表
+ getAddressList:'/client/address/list',
+ // 设置默认地址
+ setDefaultAddress:'/client/address/setDefaultAddress',
+ // 删除地址
+ deleteAddress:'/client/address/deleteAddress',
+}
+
+// 公共api接口
+const common = {
+	// 获取三级城市
+	chinaRegions:'/client/user/chinaRegions',
+}
 
 
 export default ({
 	index,
 	user,
+	common,
 })

@@ -65,19 +65,6 @@
          </checkbox-group>
        </view>
      </view>
- 
-     <!-- 微信快捷登录（可选） -->
-     <!-- #ifdef MP-WEIXIN || APP-PLUS -->
-     <view class="other-login">
-       <view class="divider">
-         <text>其他登录方式</text>
-       </view>
-       <button class="wx-login-btn" open-type="getPhoneNumber" @getphonenumber="wxLogin">
-         <image src="/static/icon-wechat.png" mode="aspectFit"></image>
-         <text>微信一键登录</text>
-       </button>
-     </view>
-     <!-- #endif -->
    </view>
  </template>
  
@@ -115,7 +102,7 @@
      // 发送验证码
      async sendCode() {
        if (!this.isPhoneValid) {
-		 this.$utils.toast('请输入正确手机号')
+		     this.$utils.toast('请输入正确手机号')
          return false;
        }
        
@@ -124,7 +111,7 @@
        
        try {
          // 调用接口发送验证码
-          const res = await this.$request.post(this.$apis.user.sendSmsCode,{ phone: this.phone })
+         const res = await this.$request.post(this.$apis.user.sendSmsCode,{ phone: this.phone })
          if (res.code === 0) {
            this.$utils.toast('验证码已发送');
            this.startCountDown();
@@ -156,12 +143,12 @@
        this.$utils.toast('登录中...');
        
        try {
-		  const res = await this.$request.post(this.$apis.user.loginByPhone,{ phone: this.phone,code: this.code })
+		     const res = await this.$request.post(this.$apis.user.loginByPhone,{ phone: this.phone,code: this.code })
           if (res.code === 0) {
            // 保存 token 和用户信息
-           uni.setStorageSync('token', res.result.data.token);
-           uni.setStorageSync('userInfo', res.result.data.userInfo);
-		   this.$utils.toast(res.result && res.result.msg || '网络错误');
+           this.$utils.setStorage('token', res.result.data.token);
+           this.$utils.setStorage('userInfo', res.result.data.userInfo);
+		       this.$utils.toast(res.result && res.result.msg || '网络错误');
            // 跳转首页
            setTimeout(() => {
              uni.switchTab({ url: '/pages/home/home' });
@@ -170,7 +157,6 @@
            this.$utils.toast('登录失败');
          }
        } catch (error) {
-		 console.log(error)
          this.$utils.toast(error && error.data.message || '网络错误');
        } finally {
          uni.hideLoading();

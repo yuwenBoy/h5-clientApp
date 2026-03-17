@@ -1,14 +1,27 @@
 	import Router from '../router/index.js'
 	// 项目名称
-	const PROJECT_NAME = 'haojj'
+	const PROJECT_NAME = 'jxxqz-h5'
 	
-	export function toLogin(){
+	let isLogin = function() {
+		if (JSON.stringify(getStorage('token')) !== '{}') {
+			return true
+		} else {
+			return false
+		}
+	}
+	
+	// 跳转到登录页面
+	let goLogin = function() {
+		// #ifdef H5
+		location.href = location.origin + location.pathname + '#' + '/pages/user/login'
+		// #endif
+	
 		// #ifdef MP-WEIXIN
 		Router.push({
-			path: '/pages/user/login'
+			path: '/pages/user/index/login',
+			query: {}
 		})
 		// #endif
-		Router.push({name:'login'})
 	}
 	let isPcFun = function () {
 		let isPc = false
@@ -200,7 +213,8 @@
 	 const isCode = (code) => /^\d{6}$/.test(code);
 
 	export default {
-		toLogin,
+		goLogin,
+		isLogin,
 		isSafari,
 		getPX,getRowAndCol,
 		default_module_high,

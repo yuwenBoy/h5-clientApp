@@ -12,10 +12,17 @@ const user = [
 		title: '关于号家军'
 	}
 },{
-	path: '/pages/user/address',
+	path: '/pages/user/address/list',
 	name: 'address',
 	meta: {
-		title: '我的地址'
+		title: '我的收货地址',
+	  requireLogin: true
+	}
+},{
+	path: '/pages/user/address/edit',
+	name: 'address',
+	meta: {
+		title: '新增地址'
 	}
 },{
 	path: '/pages/user/login',

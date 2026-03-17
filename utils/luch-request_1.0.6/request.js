@@ -26,7 +26,7 @@ export default class Request {
 		timeout: 30000,
 		// #endif
 		// #ifdef APP-PLUS
-		sslVerify: true
+		sslVerify: true,
 		// #endif
 	}
 
@@ -147,6 +147,13 @@ export default class Request {
 		options.sslVerify = options.sslVerify === undefined ? this.config.sslVerify : options.sslVerify
 		// #endif
 		options.getTask = options.getTask || this.config.getTask
+		// 1. 读取本地 token（优先用 options 中的自定义 token，没有则读缓存）
+		const token =  utils.getStorage('token')
+		console.log(token)
+		  // 2. 有 token 则添加 Authorization 头（支持临时禁用：options.custom.noToken = true）
+		if (token && !options.custom?.noToken) {
+		    options.header.Authorization = `${token}`
+		}
 		return new Promise((resolve, reject) => {
 			let next = true
 			const cancel = (t = 'handle cancel', config = options) => {

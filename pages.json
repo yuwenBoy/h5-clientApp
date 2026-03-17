@@ -6,10 +6,12 @@
 			"style": {
 				"navigationStyle": "custom",
 				"disableScroll": true,
-				"app-plus" : {
-					"bounce" : "none"
+				"app-plus": {
+					"bounce": "none"
 				},
-				"mp-alipay":{"allowsBounceVertical":"NO"}
+				"mp-alipay": {
+					"allowsBounceVertical": "NO"
+				}
 			}
 		},
 		//#endif
@@ -20,40 +22,46 @@
 				"navigationStyle": "custom",
 				"navigationBarTitleText": "首页",
 				"disableScroll": true,
-				"app-plus" : {
-					"bounce" : "none"
+				"app-plus": {
+					"bounce": "none"
 				},
-				"mp-alipay":{"allowsBounceVertical":"NO"}
+				"mp-alipay": {
+					"allowsBounceVertical": "NO"
+				}
 			}
 		},
 		//#endif
-	//#ifdef H5
-	{
-		"path": "pages/user/user",
-		"style": {
-			"navigationStyle": "custom",
-			"disableScroll": true,
-			"app-plus" : {
-				"bounce" : "none"
-			},
-			"mp-alipay":{"allowsBounceVertical":"NO"}
-		}
-	},
-	//#endif
-	//#ifndef H5
-	{
-		"path": "pages/user/home",
-		"style": {
-			"navigationStyle": "custom",
-			"navigationBarTitleText": "首页",
-			"disableScroll": true,
-			"app-plus" : {
-				"bounce" : "none"
-			},
-			"mp-alipay":{"allowsBounceVertical":"NO"}
-		}
-	},
-	//#endif
+		//#ifdef H5
+		{
+			"path": "pages/user/user",
+			"style": {
+				"navigationStyle": "custom",
+				"disableScroll": true,
+				"app-plus": {
+					"bounce": "none"
+				},
+				"mp-alipay": {
+					"allowsBounceVertical": "NO"
+				}
+			}
+		},
+		//#endif
+		//#ifndef H5
+		{
+			"path": "pages/user/home",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarTitleText": "首页",
+				"disableScroll": true,
+				"app-plus": {
+					"bounce": "none"
+				},
+				"mp-alipay": {
+					"allowsBounceVertical": "NO"
+				}
+			}
+		},
+		//#endif
 		{
 			"path": "pages/order/confirm",
 			"style": {
@@ -89,37 +97,52 @@
 			"style": {
 				"navigationStyle": "custom",
 				"disableScroll": true,
-				"app-plus" : {
-					"bounce" : "none"
+				"app-plus": {
+					"bounce": "none"
 				},
-				"mp-alipay":{"allowsBounceVertical":"NO"}
+				"mp-alipay": {
+					"allowsBounceVertical": "NO"
+				}
 			}
 
 		}, {
-			"path": "pages/user/address",
+			"path": "pages/user/address/list",
 			"style": {
-				"navigationBarTitleText": "地址管理"
+				"navigationBarTitleText": "我的收货地址",
+				"navigationStyle": "default"
+			}
+		}, {
+			"path": "pages/user/address/edit",
+			"style": {
+				"navigationStyle": "custom",
+				"disableScroll": true,
+				"app-plus": {
+					"bounce": "none"
+				},
+				"mp-alipay": {
+					"allowsBounceVertical": "NO"
+				}
 			}
 		}, {
 			"path": "pages/user/login",
 			"style": {
 				"navigationBarTitleText": "",
 				"enablePullDownRefresh": false,
-				"navigationStyle": "custom"  // 自定义导航栏，完全隐藏原生导航栏
+				"navigationStyle": "custom" // 自定义导航栏，完全隐藏原生导航栏
 			}
-		},{
-		"path": "pages/im/index",
-		"style": {
-						"navigationBarTitleText": "消息"
-					}
-	}, {
+		}, {
+			"path": "pages/im/index",
+			"style": {
+				"navigationBarTitleText": "消息"
+			}
+		}, {
 			"path": "pages/user/bindPhone",
 			"style": {
 				"navigationBarTitleText": "",
 				"enablePullDownRefresh": false
 			}
 
-		},  {  
+		}, {
 			"path": "pages/home/storeDetail",
 			"style": {
 				"navigationBarTitleText": "门店详情"
@@ -131,24 +154,21 @@
 			}
 		},
 		{
-			"path" : "pages/home/order",
-			"style" : 
-			{
-				"navigationBarTitleText" : "我的订单"
+			"path": "pages/home/order",
+			"style": {
+				"navigationBarTitleText": "我的订单"
 			}
 		},
 		{
-			"path" : "pages/home/myclasshourDetail",
-			"style" : 
-			{
-				"navigationBarTitleText" : "我的课时详情"
+			"path": "pages/home/myclasshourDetail",
+			"style": {
+				"navigationBarTitleText": "我的课时详情"
 			}
 		},
 		{
-			"path" : "pages/home/courseapply",
-			"style" : 
-			{
-				"navigationBarTitleText" : "调课申请"
+			"path": "pages/home/courseapply",
+			"style": {
+				"navigationBarTitleText": "调课申请"
 			}
 		}
 	],
@@ -170,11 +190,11 @@
 				"text": "首页"
 			},
 			{
-					"pagePath": "pages/im/index",
-					"iconPath": "static/img/tabbar/im.png",
-					"selectedIconPath": "static/img/tabbar/im-selected.png",
-					"text": "消息"
-				},
+				"pagePath": "pages/im/index",
+				"iconPath": "static/img/tabbar/im.png",
+				"selectedIconPath": "static/img/tabbar/im-selected.png",
+				"text": "消息"
+			},
 			{
 				"pagePath": "pages/user/user",
 				"iconPath": "static/img/tabbar/my.png",
