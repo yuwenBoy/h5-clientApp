@@ -7,17 +7,17 @@ const home =[{
 		hideLoading: true
 	},
 },{
-	path:'/pages/home/myclassroom',
-	name:'myclassroom',
+	path:'/pages/home/category',
+	name:'category',
 	meta: {
-			title: '我的课堂',
+			title: '分类',
 			hideLoading: true
 		}
 },{
-	path:'/pages/home/courseapply',
-	name:'courseapply',
+	path:'/pages/home/search',
+	name:'search',
 	meta: {
-			title: '调课申请',
+			title: '搜索',
 			hideLoading: true
 		}
 },{

@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "qqmap-wx-jssdk": "^1.0.0",
+    "uni-simple-router": "^1.5.4"
+  }
+}
