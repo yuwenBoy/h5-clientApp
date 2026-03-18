@@ -108,7 +108,7 @@ export default {
         area: '', // 区/县名称
         areaId: '', // 区/县ID（对接后端）
         detailAddress: '', // 详细地址
-        isDefault: false // 是否默认地址
+        isDefault: "0" // 是否默认地址
       },
       // 地区选择器相关
       provinceList: [], // 省级列表（从后端拉取）
@@ -308,7 +308,7 @@ export default {
           area: data.area || '', // 区名称
           areaId: data.areaId || '', // 区ID
           detailAddress: data.detailAddress || '',
-          isDefault: data.isDefault || false
+          isDefault: data.isDefault == 1
         };
 
         // 编辑模式：回显省市区选择器
@@ -349,11 +349,8 @@ export default {
      * 切换默认地址
      */
     toggleDefault(e) {
-      if (e.detail) {
-        this.form.isDefault = e.detail.value;
-      } else {
-        this.form.isDefault = !this.form.isDefault;
-      }
+			this.form.isDefault = e.detail.value ? "1" :"0"
+			console.log(this.form.isDefault)
     },
 
     /**
@@ -409,7 +406,7 @@ export default {
 
           // 返回地址列表页
           setTimeout(() => {
-            uni.navigateBack();
+             this.goBack()
           }, 1500);
         } else {
           uni.showToast({
@@ -440,93 +437,93 @@ export default {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 44px;
-  padding: 0 15px;
-  border-bottom: 1px solid #eee;
+  height: 88rpx;
+  padding: 0 30rpx;
+  border-bottom: 2rpx solid #eee;
 }
 .nav-back {
-  font-size: 18px;
+  font-size: 36rpx;
   color: #333;
 }
 .nav-title {
-  font-size: 16px;
+  font-size: 32rpx;
   font-weight: 500;
   color: #333;
 }
 .nav-save {
-  font-size: 15px;
+  font-size: 30rpx;
   color: #ff4400;
 }
 
 /* 表单滚动区 */
 .form-scroll {
-  height: calc(100vh - 44px);
+  height: calc(100vh - 88rpx);
 }
 
 /* 表单项 */
 .form-item {
-  padding: 15px;
-  border-bottom: 1px solid #f5f5f5;
+  padding: 30rpx;
+  border-bottom: 2rpx solid #f5f5f5;
   display: flex;
   flex-direction: column;
 }
 .form-label {
-  font-size: 14px;
+  font-size: 28rpx;
   color: #333;
-  margin-bottom: 8px;
+  margin-bottom: 16rpx;
 }
 .form-input {
-  font-size: 15px;
+  font-size: 30rpx;
   color: #666;
-  height: 20px;
-  line-height: 20px;
+  height: 40rpx;
+  line-height: 40rpx;
 }
 .form-textarea {
-  font-size: 15px;
+  font-size: 30rpx;
   color: #666;
-  min-height: 80px;
+  min-height: 160rpx;
   line-height: 1.4;
 }
 
 /* 地区选择器 */
 .region-selector {
   width: 100%;
-  padding: 5px 0;
+  padding: 10rpx 0;
 }
 .picker-text {
-  font-size: 15px;
+  font-size: 30rpx;
   color: #666;
 }
  /* 省市区选择弹窗 */
  .picker-popup {
    width: 100%;
    background-color: #fff;
-   border-radius: 10px 10px 0 0;
+   border-radius: 20rpx 20rpx 0 0;
  }
  .popup-header {
    display: flex;
    justify-content: space-between;
    align-items: center;
-   padding: 10px 15px;
-   border-bottom: 1px solid #eee;
+   padding: 20rpx 30rpx;
+   border-bottom: 2rpx solid #eee;
  }
  .popup-cancel {
-   font-size: 14px;
+   font-size: 28rpx;
    color: #999;
  }
  .popup-confirm {
-   font-size: 14px;
+   font-size: 28rpx;
    color: #ff4400;
  }
  .picker-view {
    width: 100%;
-   height: 220px; /* 压缩整体高度 */
+   height: 440px; /* 压缩整体高度 */
  }
  .picker-item {
-   line-height: 32px; /* 压缩行高，减少上下padding */
-   padding: 2px 0;
+   line-height: 46rpx; /* 压缩行高，减少上下padding */
+   padding: 4rpx 0;
    text-align: center;
-   font-size: 15px;
+   font-size: 30rpx;
    color: #333;
  }
 

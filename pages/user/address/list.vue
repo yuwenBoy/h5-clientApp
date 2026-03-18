@@ -104,7 +104,7 @@
          success: async (res) => {
            if (res.confirm) {
              try {
-               await this.$request.post(this.$apis.user.setDefaultAddress,{addressId});
+               await this.$request.post(this.$apis.user.setDefaultAddress,{id:addressId});
                uni.showToast({
                  title: '设置成功',
                  icon: 'success'
@@ -132,7 +132,7 @@
          success: async (res) => {
            if (res.confirm) {
              try {
-               await this.$apis.user.deleteAddress(addressId);
+               await this.$request.post(this.$apis.user.deleteAddress,{ id: addressId})
                uni.showToast({
                  title: '删除成功',
                  icon: 'success'
@@ -158,7 +158,6 @@
 .address-list-container {
   background-color: #f5f5f5;
   min-height: 100vh;
-  padding: 20rpx;
 }
 
 /* 添加新地址按钮 */
@@ -232,64 +231,64 @@
    display: flex;
    align-items: center;
    justify-content: center;
-   height: 50px;
+   height: 100rpx;
    background-color: #fff;
-   margin: 10px;
-   border-radius: 8px;
-   border: 1px dashed #ccc;
+   margin: 20rpx;
+   border-radius: 16rpx;
+   border: 2rpx dashed #ccc;
  }
  .add-icon {
-   font-size: 20px;
+   font-size: 40rpx;
    color: #ff4400;
-   margin-right: 5px;
+   margin-right: 10rpx;
  }
  .add-text {
-   font-size: 15px;
+   font-size: 30rpx;
    color: #ff4400;
  }
  
  /* 地址列表 */
  .address-list {
-   margin: 0 10px;
+   margin: 0 20rpx;
  }
  .address-item {
    background-color: #fff;
-   border-radius: 8px;
-   padding: 15px;
-   margin-bottom: 10px;
+   border-radius: 16rpx;
+   padding: 30rpx;
+   margin-bottom: 20rpx;
    position: relative;
  }
  /* 默认标签 */
  .default-tag {
    position: absolute;
-   top: 37px;
-   right: 15px;
+   top: 60rpx;
+   right: 30rpx;
    background-color: #ff4400;
    color: #fff;
-   font-size: 12px;
-   padding: 2px 8px;
-   border-radius: 10px;
+   font-size: 24rpx;
+   padding: 4rpx 16rpx;
+   border-radius: 20rpx;
  }
  /* 地址信息 */
  .address-info {
-   margin-bottom: 10px;
+   margin-bottom: 20rpx;
  }
  .name-phone {
    display: flex;
    justify-content: space-between;
-   margin-bottom: 5px;
+   margin-bottom: 10rpx;
  }
  .name {
-   font-size: 15px;
+   font-size: 30rpx;
    color: #333;
    font-weight: 500;
  }
  .phone {
-   font-size: 15px;
+   font-size: 30rpx;
    color: #666;
  }
  .address-detail {
-   font-size: 14px;
+   font-size: 28rpx;
    color: #666;
    line-height: 1.4;
  }
@@ -297,10 +296,10 @@
  .address-actions {
    display: flex;
    justify-content: flex-end;
-   gap: 15px;
+   gap: 30rpx;
  }
  .action-btn {
-   font-size: 14px;
+   font-size: 28rpx;
  }
  .set-default {
    color: #ff4400;
@@ -317,27 +316,27 @@
    display: flex;
    flex-direction: column;
    align-items: center;
-   padding-top: 60px;
+   padding-top: 120rpx;
  }
  .empty-icon {
-   width: 120px;
-   margin-bottom: 20px;
+   width: 240rpx;
+   margin-bottom: 40rpx;
  }
  .empty-text {
-   font-size: 14px;
+   font-size: 28rpx;
    color: #999;
-   margin-bottom: 30px;
+   margin-bottom: 60rpx;
  }
  .empty-add-btn {
-   width: 120px;
-   height: 36px;
-   line-height: 36px;
+   width: 240rpx;
+   height: 72rpx;
+   line-height: 72rpx;
    background-color: #ff4400;
    color: #fff;
    text-align: center;
-   border-radius: 18px;
+   border-radius: 36rpx;
  }
  .empty-add-text {
-   font-size: 14px;
+   font-size: 28rpx;
  }
  </style>
