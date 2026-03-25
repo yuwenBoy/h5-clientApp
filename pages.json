@@ -73,19 +73,19 @@
 				"navigationBarTitleText": "分类"
 			}
 		}, {
-			"path": "pages/home/myzuoye",
+			"path": "pages/order/list",
 			"style": {
-				"navigationBarTitleText": "我的作业"
+				"navigationBarTitleText": "订单列表"
 			}
 		}, {
-			"path": "pages/home/myclasshour",
+			"path": "pages/order/detail",  
 			"style": {
-				"navigationBarTitleText": "我的课时"
+				"navigationBarTitleText": "订单详情"
 			}
 		}, {
-			"path": "pages/home/message",
+			"path": "pages/order/pay",
 			"style": {
-				"navigationBarTitleText": "家校消息"
+				"navigationBarTitleText": "订单支付"
 			}
 		}, {
 			"path": "pages/home/quickzf",
@@ -142,7 +142,7 @@
 				"enablePullDownRefresh": false
 			}
 
-		}, {
+		}, {  
 			"path": "pages/home/storeDetail",
 			"style": {
 				"navigationBarTitleText": "门店详情"

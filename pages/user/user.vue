@@ -67,7 +67,7 @@
 			},
 			toOrder(e) {
 				this.$Router.push({
-					path: '/pages/user/order'
+					path: '/pages/order/list'
 				})
 			},
 			toLogin(e){

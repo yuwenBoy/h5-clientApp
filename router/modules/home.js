@@ -33,22 +33,10 @@ const home =[{
 		title:'我的作业详情'
 	}
 },{
-	path:'/pages/home/myclasshour',
-	name:'myclass',
-	meta:{
-		title:'我的课时'
-	}
-},{
 	path:'/pages/home/myclasshourDetail',
 	name:'myclasshourDetail',
 	meta:{
 		title:'我的课时详情'
-	}
-},{
-	path:'/pages/home/message',
-	name:'message',
-	meta:{
-		title:'家校消息'
 	}
 },{
 	path:'/pages/home/storeDetail',
