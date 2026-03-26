@@ -44,11 +44,5 @@ const home =[{
 	meta:{
 		title:'门店详情'
 	}
-},{
-	path:'/pages/home/quickzf',
-	name:'quickzf',
-	meta:{
-		title:'学生缴费'
-	}
-}]
-export default home;
+}]  
+export default home;  

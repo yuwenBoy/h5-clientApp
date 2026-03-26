@@ -88,9 +88,9 @@
 				"navigationBarTitleText": "订单支付"
 			}
 		}, {
-			"path": "pages/home/quickzf",
+			"path": "pages/goods/detail",
 			"style": {
-				"navigationBarTitleText": "学生缴费"
+				"navigationBarTitleText": "商品详情"
 			}
 		}, {
 			"path": "pages/user/about",
