@@ -8,17 +8,17 @@
  			</view>
  		</view>
 
- 		<!-- 定位信息 -->
+ 		<!-- 定位信息 → 点击直接地图选点 -->
  		<view class="location-bar" @click="chooseLocation">
  			<uni-icons type="location-filled" size="16" color="#ff6000" />
- 			<text class="location-text">{{ currentLocation || '点击选择位置' }}</text>
+ 			<text class="location-text">{{ currentLocation || '定位中…' }}</text>
  			<uni-icons type="right" size="14" color="#999" />
  		</view>
 
  		<!-- 轮播图 -->
  		<swiper class="banner-swiper" :indicator-dots="true" :autoplay="true" :interval="3000">
  			<swiper-item v-for="(item, index) in bannerList" :key="index">
- 				<image class="banner-img" :src="item.image" mode="aspectFill" @click="bannerClick(item)" />
+ 				<image class="banner-img" :src="item.image" mode="aspectFill" />
  			</swiper-item>
  		</swiper>
 
@@ -32,7 +32,7 @@
  			</view>
  		</scroll-view>
 
- 		<!-- 推荐商家列表 -->
+ 		<!-- 推荐商家 -->
  		<view class="store-section">
  			<view class="section-title">附近商家</view>
  			<view class="store-list-wrapper">
@@ -46,33 +46,38 @@
  							<view class="store-info">
  								<view class="store-header">
  									<text class="store-name">{{ store.storeName }}</text>
- 									<text class="store-distance">{{ store.distance || 1 }}km · {{ store.delivery_time || '30分钟' }}</text>
+ 									<text class="store-distance">{{ store.distanceText || '未知距离' }}</text>
  								</view>
  								<view class="store-status">
-								  <view class="store-status-rest" v-if="store.status===3">
-										<text class="text">休息中</text>
-										<text class="time">周日4:00开始营业</text>
-									</view>
-									<text class="store-status-end" v-else>
-										暂停营业
-									</text>
+ 									<view class="store-status-rest" v-if="store.business_status==='休息中'">
+ 										<text class="text">休息中</text>
+ 										<text class="time">{{store.next_open_time}}</text>
+ 									</view>
+ 									<view class="store-status-open" v-else-if="store.business_status==='营业中'">
+ 										<text class="text">营业中</text>
+ 										<text class="time">{{store.today_hours}}</text>
+ 									</view>
+ 									<view class="store-status-close" v-else-if="store.business_status==='已打烊'">
+ 										<text class="text">已打烊</text>
+ 										<text class="time">{{store.next_open_time}}</text>
+ 									</view>
+ 									<view class="store-status-none" v-else>
+ 										<text class="text">{{store.business_status}}</text>
+ 									</view>
  								</view>
  								<view class="store-meta">
- 									<text class="rating">⭐ {{ store.rating || 3 }}</text>
- 									<text class="sales">月售{{ store.monthly_sales || 1000 }}</text>
+ 									<text class="rating">⭐ {{ store.rating || 5.0 }}</text>
+ 									<text class="sales">月售{{ store.monthly_sales || 88 }}</text>
  								</view>
  								<view class="store-delivery">
- 									<text class="delivery-fee">配送 ¥{{ store.delivery_fee || 1.5 }}</text>
- 									<text class="min-order">起送 ¥{{ store.min_order_amount || 15 }}</text>
- 								</view>
- 								<view class="store-tags" v-if="store.tags">
- 									<text class="tag" v-for="tag in store.tags" :key="tag">{{ tag }}</text>
+ 									<text class="delivery-fee">配送 ¥{{ store.delivery_fee || 0 }}</text>
+ 									<text class="min-order">起送 ¥{{ store.min_order_amount || 20 }}</text>
  								</view>
  							</view>
  						</view>
  					</view>
  					<view class="empty-box" v-if="storeList.length === 0 && isLoaded">
- 						<image class="empty-icon" src="/static/images/empty.png" mode="aspectFill" />
+ 						<image class="empty-icon" src="/static/images/empty.png" />
  						<text class="empty-text">暂无附近商家</text>
  					</view>
  				</mescroll-uni>
@@ -80,116 +85,71 @@
  		</view>
  	</view>
  </template>
-
  <script>
  	import MescrollMixin from "@/components/mescroll-uni/mescroll-mixins.js";
 
- 	const TENCENT_KEY = '6TCBZ-CZ36V-SGJP7-5RHL3-Y5XWE-ZPFUO';
-
- 	// 常用城市坐标库（H5端使用）
- 	const CITY_COORDS = {
- 		'北京': {
- 			lat: 39.9042,
- 			lng: 116.4074
- 		},
- 		'上海': {
- 			lat: 31.2304,
- 			lng: 121.4737
- 		},
- 		'广州': {
- 			lat: 23.1291,
- 			lng: 113.2644
- 		},
- 		'深圳': {
- 			lat: 22.5431,
- 			lng: 114.0579
- 		},
- 		'杭州': {
- 			lat: 30.2741,
- 			lng: 120.1551
- 		},
- 		'南京': {
- 			lat: 32.0603,
- 			lng: 118.7969
- 		},
- 		'成都': {
- 			lat: 30.5728,
- 			lng: 104.0668
- 		},
- 		'武汉': {
- 			lat: 30.5928,
- 			lng: 114.3055
- 		},
- 		'西安': {
- 			lat: 34.3416,
- 			lng: 108.9398
- 		},
- 		'重庆': {
- 			lat: 29.5630,
- 			lng: 106.5516
- 		}
+ 	// 高德 Web服务 Key
+ 	const AMAP_KEY = "a44164dfbe3191271a79f6e55b7d26b6";
+ 	// 默认坐标（北京天安门）
+ 	const DEFAULT_LAT = 39.9042;
+ 	const DEFAULT_LNG = 116.4074;
+ 	// 先配置安全密钥（必须在加载脚本前）
+ 	window._AMapSecurityConfig = {
+ 		securityJsCode: '91a752875c181e6ca8fca50034ba7856'
  	};
-
  	export default {
  		mixins: [MescrollMixin],
-
  		data() {
  			return {
- 				currentLocation: '',
- 				latitude: '',
- 				longitude: '',
+ 				currentLocation: "定位中…",
+ 				latitude: null,
+ 				longitude: null,
  				bannerList: [{
- 						image: 'https://picsum.photos/750/300?random=1',
- 						link: ''
+ 						image: "https://picsum.photos/750/300?random=1"
  					},
  					{
- 						image: 'https://picsum.photos/750/300?random=2',
- 						link: ''
- 					},
- 					{
- 						image: 'https://picsum.photos/750/300?random=3',
- 						link: ''
+ 						image: "https://picsum.photos/750/300?random=2"
  					}
  				],
  				categoryList: [{
  						id: 1,
- 						name: '美食',
- 						icon: 'https://picsum.photos/120/120?random=1'
+ 						name: "美食",
+ 						icon: "https://picsum.photos/120/120?random=1"
  					},
  					{
  						id: 2,
- 						name: '超市',
- 						icon: 'https://picsum.photos/120/120?random=2'
+ 						name: "超市",
+ 						icon: "https://picsum.photos/120/120?random=2"
  					},
  					{
  						id: 3,
- 						name: '鲜花',
- 						icon: 'https://picsum.photos/120/120?random=3'
+ 						name: "鲜花",
+ 						icon: "https://picsum.photos/120/120?random=3"
  					},
  					{
  						id: 4,
- 						name: '药品',
- 						icon: 'https://picsum.photos/120/120?random=4'
+ 						name: "药品",
+ 						icon: "https://picsum.photos/120/120?random=4"
  					},
  					{
  						id: 5,
- 						name: '跑腿',
- 						icon: 'https://picsum.photos/120/120?random=5'
+ 						name: "跑腿",
+ 						icon: "https://picsum.photos/120/120?random=5"
  					},
  					{
  						id: 6,
- 						name: '水果',
- 						icon: 'https://picsum.photos/120/120?random=6'
+ 						name: "水果",
+ 						icon: "https://picsum.photos/120/120?random=6"
  					},
  					{
  						id: 7,
- 						name: '奶茶',
- 						icon: 'https://picsum.photos/120/120?random=7'
+ 						name: "奶茶",
+ 						icon: "https://picsum.photos/120/120?random=7"
  					},
  					{
  						id: 8,
- 						name: '更多',
- 						icon: 'https://picsum.photos/120/120?random=8'
+ 						name: "更多",
+ 						icon: "https://picsum.photos/120/120?random=8"
  					}
  				],
  				storeList: [],
@@ -198,155 +158,180 @@
  		},
 
  		onLoad() {
- 			// 恢复缓存位置
- 			const cached = uni.getStorageSync('locationInfo');
- 			if (cached) {
- 				this.currentLocation = cached.name;
- 				this.latitude = cached.latitude;
- 				this.longitude = cached.longitude;
- 			} else {
- 				this.currentLocation = '点击选择位置';
- 				// App/小程序自动定位
- 				// #ifndef H5
- 				this.getAppLocation();
- 				// #endif
- 			}
+ 			setTimeout(() => {
+ 				this.getRealLocation();
+ 			}, 500);
  		},
 
  		methods: {
- 			// 选择位置
- 			chooseLocation() {
+ 			// 真实定位（修复版，必回调）
+ 			getRealLocation() {
+ 				this.currentLocation = "正在获取位置…";
+
+ 				let timeout = setTimeout(() => {
+ 					console.warn("定位超时，使用IP定位");
+ 					this.getIpLocation();
+ 				}, 8000);
+
  				// #ifdef H5
- 				// H5：使用内置城市选择
- 				this.chooseLocationH5();
+ 				this.getH5Location(timeout);
  				// #endif
 
  				// #ifndef H5
- 				// App/小程序：原生地图选择
- 				this.chooseLocationApp();
+ 				this.getUniLocation(timeout);
  				// #endif
  			},
 
- 			// H5端选择位置（无跨域问题）
- 			chooseLocationH5() {
- 				const cityList = Object.keys(CITY_COORDS);
+ 			// H5端使用高德JSAPI定位
+ 			getH5Location(timeout) {
 
- 				uni.showActionSheet({
- 					title: '选择城市',
- 					itemList: cityList,
- 					success: (res) => {
- 						const city = cityList[res.tapIndex];
- 						const coord = CITY_COORDS[city];
-
- 						// 弹出输入框填写详细地址
- 						uni.showModal({
- 							title: '详细地址',
- 							editable: true,
- 							placeholderText: `请输入${city}的详细地址（如：朝阳区三里屯）`,
- 							success: (modalRes) => {
- 								if (modalRes.confirm) {
- 									const detail = modalRes.content || '';
- 									this.currentLocation = detail ? `${city}·${detail}` : city;
- 									this.latitude = coord.lat;
- 									this.longitude = coord.lng;
-
- 									// 保存
- 									uni.setStorageSync('latitude', coord.lat);
- 									uni.setStorageSync('longitude', coord.lng);
- 									uni.setStorageSync('locationInfo', {
- 										name: this.currentLocation,
- 										latitude: coord.lat,
- 										longitude: coord.lng
- 									});
-
- 									// 刷新列表
- 									this.mescroll && this.mescroll.resetUpScroll();
- 								}
- 							}
- 						});
- 					}
- 				});
+ 				if (typeof window.AMap === 'undefined') {
+ 					const script = document.createElement('script');
+ 					script.src = `https://webapi.amap.com/maps?v=2.0&key=${AMAP_KEY}&plugin=AMap.Geolocation`;
+ 					script.onload = () => {
+ 						this.initAmapGeolocation(timeout);
+ 					};
+ 					script.onerror = () => {
+ 						clearTimeout(timeout);
+ 						this.getIpLocation();
+ 					};
+ 					document.head.appendChild(script);
+ 				} else {
+ 					this.initAmapGeolocation(timeout);
+ 				}
  			},
 
- 			// App/小程序端选择位置
- 			chooseLocationApp() {
- 				uni.chooseLocation({
- 					latitude: this.latitude || undefined,
- 					longitude: this.longitude || undefined,
- 					success: (res) => {
- 						this.setLocation(res.latitude, res.longitude, res.name || res.address);
- 					},
- 					fail: () => {
- 						uni.showToast({
- 							title: '请选择位置',
- 							icon: 'none'
- 						});
- 					}
- 				});
- 			},
+ 			// 初始化高德定位
+ 			initAmapGeolocation(timeout) {
+ 				window.AMap.plugin('AMap.Geolocation', () => {
+ 					const geolocation = new window.AMap.Geolocation({
+ 						enableHighAccuracy: true,
+ 						timeout: 10000,
+ 						buttonPosition: 'RB',
+ 						zoomToAccuracy: true
+ 					});
 
- 			// App/小程序自动定位
- 			getAppLocation() {
- 				uni.showLoading({
- 					title: '定位中...'
- 				});
-
- 				uni.getLocation({
- 					type: 'gcj02',
- 					isHighAccuracy: true,
- 					success: (res) => {
- 						// 解析地址
- 						this.reverseGeocoder(res.latitude, res.longitude);
- 					},
- 					fail: () => {
- 						this.currentLocation = '点击选择位置';
- 						uni.hideLoading();
- 					}
- 				});
- 			},
-
- 			// 坐标转地址（App/小程序，使用HTTP请求）
- 			reverseGeocoder(latitude, longitude) {
- 				uni.request({
- 					url: 'https://apis.map.qq.com/ws/geocoder/v1/',
- 					data: {
- 						location: `${latitude},${longitude}`,
- 						key: TENCENT_KEY,
- 						get_poi: 1
- 					},
- 					success: (res) => {
- 						uni.hideLoading();
- 						if (res.data.status === 0) {
- 							const result = res.data.result;
- 							const name = result.formatted_addresses?.recommend ||
- 								result.address_component?.street ||
- 								result.address ||
- 								'当前位置';
- 							this.setLocation(latitude, longitude, name);
+ 					geolocation.getCurrentPosition((status, result) => {
+ 						clearTimeout(timeout);
+ 						if (status === 'complete') {
+ 							const {
+ 								lat,
+ 								lng
+ 							} = result.position;
+ 							this.regeoAddress(lat, lng);
  						} else {
- 							this.setLocation(latitude, longitude, '当前位置');
+ 							console.error('高德定位失败，尝试IP定位', result);
+ 							this.getIpLocation();
+ 						}
+ 					});
+ 				});
+ 			},
+
+ 			// IP定位（降级方案）
+ 			getIpLocation() {
+ 				uni.request({
+ 					url: "https://restapi.amap.com/v3/ip",
+ 					data: {
+ 						key: AMAP_KEY,
+ 						output: "json"
+ 					},
+ 					success: (res) => {
+ 						if (res.data.status === "1" && res.data.rectangle) {
+ 							const rectangle = res.data.rectangle.split(';');
+ 							const [lng1, lat1] = rectangle[0].split(',');
+ 							const [lng2, lat2] = rectangle[1].split(',');
+ 							const centerLat = (parseFloat(lat1) + parseFloat(lat2)) / 2;
+ 							const centerLng = (parseFloat(lng1) + parseFloat(lng2)) / 2;
+ 							this.currentLocation = res.data.city || "当前城市";
+ 							this.setLocation(centerLat, centerLng, this.currentLocation);
+ 						} else {
+ 							this.useDefaultLocation();
  						}
  					},
  					fail: () => {
- 						uni.hideLoading();
- 						this.setLocation(latitude, longitude, '当前位置');
+ 						this.useDefaultLocation();
  					}
  				});
  			},
 
- 			// 设置位置
+ 			// 使用默认坐标
+ 			useDefaultLocation() {
+ 				this.currentLocation = "定位失败，请点击选择";
+ 				this.latitude = DEFAULT_LAT;
+ 				this.longitude = DEFAULT_LNG;
+ 				this.$nextTick(() => {
+ 					this.mescroll?.resetUpScroll();
+ 				});
+ 			},
+
+ 			// 小程序/App端定位
+ 			getUniLocation(timeout) {
+ 				uni.getLocation({
+ 					type: "gcj02",
+ 					isHighAccuracy: true,
+ 					success: (res) => {
+ 						clearTimeout(timeout);
+ 						this.latitude = res.latitude;
+ 						this.longitude = res.longitude;
+ 						this.regeoAddress(res.latitude, res.longitude);
+ 					},
+ 					fail: (err) => {
+ 						clearTimeout(timeout);
+ 						console.error("定位失败", err);
+ 						this.getIpLocation();
+ 					}
+ 				});
+ 			},
+
+ 			// 高德逆地理编码
+ 			regeoAddress(lat, lng) {
+ 				uni.request({
+ 					url: "https://restapi.amap.com/v3/geocode/regeo",
+ 					data: {
+ 						key: AMAP_KEY,
+ 						location: `${lng},${lat}`,
+ 						output: "json"
+ 					},
+ 					success: (res) => {
+ 						let addr = "当前位置";
+ 						if (res.data.status === "1") {
+ 							addr = res.data.regeocode.formatted_address;
+ 						}
+ 						this.setLocation(lat, lng, addr);
+ 					},
+ 					fail: () => {
+ 						this.setLocation(lat, lng, "当前位置");
+ 					}
+ 				});
+ 			},
+
+ 			// 点击 → 直接打开地图选点
+ 			chooseLocation() {
+ 				uni.chooseLocation({
+ 					success: (res) => {
+ 						this.setLocation(res.latitude, res.longitude, res.name || res.address);
+ 					},
+ 					fail: (err) => {
+ 						if (err.errMsg && err.errMsg.includes("cancel")) return;
+ 						uni.showToast({
+ 							title: "选择位置失败",
+ 							icon: "none"
+ 						});
+ 					}
+ 				});
+ 			},
+
+ 			// 保存位置并刷新商家
  			setLocation(lat, lng, name) {
  				this.latitude = lat;
  				this.longitude = lng;
  				this.currentLocation = name;
- 				uni.setStorageSync('latitude', lat);
- 				uni.setStorageSync('longitude', lng);
- 				uni.setStorageSync('locationInfo', {
- 					name: name,
- 					latitude: lat,
- 					longitude: lng
+ 				uni.setStorageSync("locationInfo", {
+ 					name,
+ 					lat,
+ 					lng
  				});
- 				this.mescroll && this.mescroll.resetUpScroll();
+ 				this.mescroll?.resetUpScroll();
  			},
 
  			// 下拉刷新
@@ -357,77 +342,67 @@
 
  			// 上拉加载
  			upCallback(page) {
+ 				const lat = this.latitude || DEFAULT_LAT;
+ 				const lng = this.longitude || DEFAULT_LNG;
+
  				const params = {
  					page: page.num,
  					size: page.size,
- 					latitude: this.latitude || uni.getStorageSync('latitude') || '39.9042',
- 					longitude: this.longitude || uni.getStorageSync('longitude') || '116.4074'
+ 					lat: lat,
+ 					lng: lng
  				};
 
  				this.$request.post(this.$apis.index.storeList, params).then(res => {
- 					const curPageData = res.result.content || [];
- 					const totalSize = res.result.totalElements || 0;
-
- 					if (page.num === 1) {
- 						this.storeList = [];
- 					}
-
- 					this.storeList = this.storeList.concat(curPageData);
+ 					const arr = res.result.content || [];
+ 					const total = res.result.totalElements || 0;
+ 					if (page.num === 1) this.storeList = [];
+ 					this.storeList = this.storeList.concat(arr);
  					this.isLoaded = true;
- 					this.mescroll.endSuccess(curPageData.length, totalSize);
- 				}).catch(err => {
- 					console.error('加载失败', err);
+ 					this.mescroll.endSuccess(arr.length, total);
+ 				}).catch(() => {
  					this.mescroll.endErr();
  				});
  			},
 
  			toSearchPage() {
  				uni.navigateTo({
- 					url: '/pages/home/search'
+ 					url: "/pages/home/search"
  				});
  			},
-
- 			categoryClick(category) {
+ 			categoryClick(item) {
  				uni.navigateTo({
- 					url: `/pages/home/category?id=${category.id}&name=${category.name}`
+ 					url: `/pages/home/category?id=${item.id}&name=${item.name}`
  				});
  			},
-
  			toStoreDetail(store) {
  				uni.navigateTo({
  					url: `/pages/home/storeDetail?id=${store.id}`
- 				});
- 			},
-
- 			bannerClick(item) {
- 				if (item.link) uni.navigateTo({
- 					url: item.link
  				});
  			}
  		}
  	};
  </script>
 
+
  <style lang="scss" scoped>
  	.home-page {
  		min-height: 100vh;
- 		background-color: #f5f5f5;
+ 		background: #f5f5f5;
  	}
 
  	.search-bar-sticky {
  		position: sticky;
  		top: 0;
  		z-index: 999;
- 		padding: 15rpx 30rpx 10rpx;
- 		background-color: #fff;
- 		box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+ 		padding: 15rpx 30rpx;
+ 		background: #fff;
 
  		.search-box {
  			display: flex;
  			align-items: center;
  			height: 64rpx;
  			padding: 0 24rpx;
- 			background-color: #f2f2f2;
+ 			background: #f2f2f2;
  			border-radius: 32rpx;
 
  			.placeholder {
@@ -442,7 +417,7 @@
  		display: flex;
  		align-items: center;
  		padding: 16rpx 30rpx;
- 		background-color: #fff;
+ 		background: #fff;
  		border-bottom: 1rpx solid #f0f0f0;
 
  		.location-text {
@@ -453,7 +428,6 @@
  			white-space: nowrap;
  			overflow: hidden;
  			text-overflow: ellipsis;
- 			padding-right: 10rpx;
  		}
  	}
 
@@ -468,28 +442,22 @@
  	}
 
  	.category-scroll {
- 		width: 100%;
- 		background-color: #fff;
- 		white-space: nowrap;
+ 		background: #fff;
  	}
 
  	.category-nav {
  		display: flex;
- 		flex-direction: row;
  		padding: 30rpx 0;
 
  		.category-item {
  			flex-shrink: 0;
- 			display: flex;
- 			flex-direction: column;
- 			align-items: center;
  			width: 150rpx;
- 			padding: 0 10rpx;
+ 			text-align: center;
 
  			.category-icon {
  				width: 80rpx;
  				height: 80rpx;
- 				border-radius: 40rpx;
+ 				border-radius: 50%;
  			}
 
  			.category-name {
@@ -507,14 +475,8 @@
  			padding: 30rpx;
  			font-size: 32rpx;
  			font-weight: bold;
- 			color: #333;
+ 			background: #fff;
  			border-bottom: 1rpx solid #eee;
- 			background-color: #fff;
- 		}
-
- 		.store-list-wrapper {
- 			min-height: calc(100vh - 860rpx);
- 			overflow: visible;
  		}
  	}
 
@@ -522,9 +484,8 @@
  		.store-item {
  			display: flex;
  			padding: 30rpx;
+ 			background: #fff;
  			border-bottom: 1rpx solid #f0f0f0;
- 			margin-bottom: 10rpx;
- 			background-color: #fff;
  		}
 
  		.store-image {
@@ -542,12 +503,10 @@
  		.store-header {
  			display: flex;
  			justify-content: space-between;
- 			align-items: center;
 
  			.store-name {
  				font-size: 32rpx;
  				font-weight: bold;
- 				color: #333;
  			}
 
  			.store-distance {
@@ -555,46 +514,52 @@
  				color: #999;
  			}
  		}
-		
-		.store-status{
-				margin-top: 10rpx;
-				&-end{
-					background-color: #999;
-					color: #FFFFFF;
-					padding: 6rpx 10rpx;
-					border-radius:6rpx;
-					font-size: 24rpx;
-				}
-				&-rest{
-					font-size: 24rpx;
-						border-radius:6rpx;
-					.text{
-						background-color: #999;
-						color: #FFFFFF;
-						border:1px solid #999;
-						padding: 6rpx 10rpx;
-					}
-					.time{
-						background-color: #FFFFFF;
-						color: #999;
-						border: 1px solid #999;
-						padding: 6rpx 10rpx;
-					}
-				}
-		}
+
+ 		.store-status {
+ 			margin-top: 10rpx;
+ 			display: flex;
+ 			gap: 8rpx;
+ 			flex-wrap: wrap;
+
+ 			.text {
+ 				padding: 6rpx 10rpx;
+ 				border-radius: 6rpx;
+ 				font-size: 24rpx;
+ 				color: #fff;
+ 			}
+
+ 			.time {
+ 				padding: 6rpx 10rpx;
+ 				font-size: 24rpx;
+ 				color: #666;
+ 			}
+
+ 			&-open .text {
+ 				background: #00c48c;
+ 			}
+
+ 			&-close .text {
+ 				background: #ff6000;
+ 			}
+
+ 			&-rest .text,
+ 			&-none .text {
+ 				background: #999;
+ 			}
+ 		}
 
  		.store-meta {
  			margin-top: 10rpx;
 
  			.rating {
- 				font-size: 24rpx;
  				color: #ff6000;
+ 				font-size: 24rpx;
  			}
 
  			.sales {
  				margin-left: 20rpx;
- 				font-size: 24rpx;
  				color: #666;
+ 				font-size: 24rpx;
  			}
  		}
 
@@ -603,37 +568,19 @@
  			font-size: 24rpx;
 
  			.delivery-fee {
- 				margin-right: 20rpx;
  				color: #ff6000;
- 				font-weight: 500;
+ 				margin-right: 20rpx;
  			}
 
  			.min-order {
  				color: #666;
  			}
  		}
-
- 		.store-tags {
- 			margin-top: 10rpx;
-
- 			.tag {
- 				display: inline-block;
- 				padding: 4rpx 12rpx;
- 				margin-right: 10rpx;
- 				font-size: 20rpx;
- 				color: #ff6000;
- 				background-color: #fff7f0;
- 				border-radius: 4rpx;
- 			}
- 		}
  	}
 
  	.empty-box {
- 		display: flex;
- 		flex-direction: column;
- 		align-items: center;
- 		justify-content: center;
  		padding: 100rpx 0;
+ 		text-align: center;
 
  		.empty-icon {
  			width: 200rpx;

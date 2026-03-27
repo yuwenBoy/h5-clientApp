@@ -55,13 +55,11 @@
  							<image class="goods-img" :src="goods.img" mode="aspectFill" />
  							<view class="goods-info" @click.stop>
  								<view class="goods-name">{{ goods.name }}</view>
- 								<view class="goods-desc">{{ goods.desc }}</view>
  								<view class="goods-sales">月售 {{ goods.sales }}</view>
  								<view class="goods-bottom">
  									<view class="price-box">
  										<text class="price-symbol">¥</text>
  										<text class="price-value">{{ goods.defaultSpec.price }}</text>
- 										<text class="price-original">¥{{ goods.original }}</text>
  									</view>
  									<!-- 多规格显示加减按钮（和单规格一样） -->
  									<view class="stepper" v-if="hasSpecs(goods)">
@@ -782,7 +780,7 @@
  					flex-direction: column;
  					justify-content: space-between;
  					.goods-name {
- 						font-size: 30rpx;
+ 						font-size: 28rpx;
  						font-weight: bold;
  						color: #333;
  					}
@@ -804,15 +802,9 @@
  								color: $primary;
  							}
  							.price-value {
- 								font-size: 36rpx;
+ 								font-size: 32rpx;
  								font-weight: bold;
  								color: $primary;
- 							}
- 							.price-original {
- 								margin-left: 10rpx;
- 								font-size: 24rpx;
- 								color: #999;
- 								text-decoration: line-through;
  							}
  						}
  						.stepper {
