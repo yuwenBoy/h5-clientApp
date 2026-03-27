@@ -326,7 +326,7 @@
          storeId: this.storeInfo.id,
          storeName: this.storeInfo.name,
          goods:JSON.stringify(this.cartList.map(item => ({
-           productId: item.id,
+           productId: item.productId,
            productName: item.name,
            specName: item.specName || '',
            price: item.price,
