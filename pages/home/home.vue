@@ -57,7 +57,7 @@
  										<text class="text">营业中</text>
  										<text class="time">{{store.today_hours}}</text>
  									</view>
- 									<view class="store-status-close" v-else-if="store.business_status==='已打烊'">
+ 									<view class="store-status-rest" v-else-if="store.business_status==='已打烊'">
  										<text class="text">已打烊</text>
  										<text class="time">{{store.next_open_time}}</text>
  									</view>
@@ -537,11 +537,6 @@
  			&-open .text {
  				background: #00c48c;
  			}
-
- 			&-close .text {
- 				background: #ff6000;
- 			}
-
  			&-rest .text,
  			&-none .text {
  				background: #999;
