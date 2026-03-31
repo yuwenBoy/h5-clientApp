@@ -36,7 +36,6 @@ export default {
     };
   },
   onLoad(options) {
-		debugger
     this.orderId = options.id;
     this.orderNo = options.orderNo;
     this.total = options.total;

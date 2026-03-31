@@ -163,10 +163,10 @@
        return arr.join(' ')
      }
    },
-   onLoad(options) {
-     this.goodsId = options.id
-     this.initDefaultSpec()
-   },
+	 mounted(){
+		 this.goodsId = this.$Route.query.id
+		 this.initDefaultSpec()
+	 },
    methods: {
      initDefaultSpec() {
        this.specGroups.forEach(g => {

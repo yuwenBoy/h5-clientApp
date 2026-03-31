@@ -374,10 +374,14 @@
  					url: `/pages/home/category?id=${item.id}&name=${item.name}`
  				});
  			},
+			// 跳转到门店详情
  			toStoreDetail(store) {
- 				uni.navigateTo({
- 					url: `/pages/home/storeDetail?id=${store.id}`
- 				});
+				this.$Router.push({
+					path: '/pages/home/storeDetail',
+					query: {
+					  id: store.id
+					}
+				})
  			}
  		}
  	};

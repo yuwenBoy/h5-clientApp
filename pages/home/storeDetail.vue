@@ -53,7 +53,7 @@
  						<view class="cat-title">{{ cat.name }}</view>
  						<view v-for="(goods, gIndex) in cat.goods" :key="gIndex" class="goods-item" @click="goToDetail(goods)">
  							<image class="goods-img" :src="goods.img" mode="aspectFill" />
- 							<view class="goods-info" @click.stop>
+ 							<view class="goods-info">
  								<view class="goods-name">{{ goods.name }}</view>
  								<view class="goods-sales">月售 {{ goods.sales }}</view>
  								<view class="goods-bottom">
@@ -310,8 +310,12 @@
  			}
  		},
  
+    mounted(){
+			this.storeId = this.$Route.query.id
+			if (this.storeId) this.getStoreDetail(this.storeId)
+			this.calcNoticeDuration()
+		},
  		onLoad(option) {
- 			this.storeId = option.id
  			if (this.storeId) this.getStoreDetail(this.storeId)
  			this.calcNoticeDuration()
  		},
@@ -510,9 +514,13 @@
  
  			// 跳转到商品详情
  			goToDetail(goods) {
- 				uni.navigateTo({
- 					url: `/pages/goods/detail?id=${goods.productId}&storeId=${this.storeId}`
- 				})
+				this.$Router.push({
+					path: '/pages/goods/detail',
+					query: {
+					  id:goods.productId,
+						storeId:this.storeId
+					}
+				})
  			},
  
  			clickCategory(index) {
@@ -1199,9 +1207,7 @@
  					
  					.selected-info-header {
  						display: flex;
- 						align-items: center;
  						font-size: 24rpx;
- 						
  						.selected-label {
  							color: #999;
  							flex-shrink: 0;
