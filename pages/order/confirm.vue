@@ -44,13 +44,19 @@
       
       <view class="goods-list">
         <view class="goods-item" v-for="(item, index) in cartList" :key="index">
-          <image class="goods-img" :src="item.img || defaultGoodsImg" mode="aspectFill" />
+          <image class="goods-img" :src="item.image || item.img || defaultGoodsImg" mode="aspectFill" />
           <view class="goods-info">
-            <text class="goods-name">{{ item.name }}</text>
-            <text class="goods-sku" v-if="item.specName">{{ item.specName }}</text>
+            <view class="goods-name-row">
+              <text class="goods-name">{{ item.name }}</text>
+              <text class="flash-tag" v-if="item.originalPrice">闪购</text>
+            </view>
+            <text class="goods-sku" v-if="item.spec || item.specName">{{ item.spec || item.specName }}</text>
             <view class="goods-bottom">
-              <text class="goods-price">¥{{ item.price }}</text>
-              <text class="goods-count">x{{ item.count }}</text>
+              <view class="price-info">
+                <text class="goods-price">¥{{ item.price }}</text>
+                <text class="original-price" v-if="item.originalPrice">¥{{ item.originalPrice }}</text>
+              </view>
+              <text class="goods-count">x{{ item.quantity || item.count }}</text>
             </view>
           </view>
         </view>
@@ -199,40 +205,40 @@
  <script>
  export default {
    data() {
-     return {
-       defaultAddress: null, // 不写死，从接口取
-       selectedTime: {
-         value: 'fast',
-         text: '尽快送达',
-         subText: '预计30分钟',
-         isFast: true
-       },
-       timeOptions: [
-         { value: 'fast', text: '尽快送达', subText: '预计30分钟', isFast: true },
-         { value: '12:00', text: '12:00', subText: '准时达' },
-         { value: '12:30', text: '12:30', subText: '准时达' },
-         { value: '13:00', text: '13:00', subText: '准时达' },
-         { value: '13:30', text: '13:30', subText: '准时达' },
-         { value: '14:00', text: '14:00', subText: '准时达' }
-       ],
-       storeInfo: {}, // 从缓存取
-       cartList: [],  // 从缓存取
-       deliveryFee: 0,
-       discount: 0,
-       couponDiscount: 0,
-       remark: '',
-       tempRemark: '',
-       payMethod: 'wechat',
-       defaultStoreLogo: '/static/logo.png',
-       defaultGoodsImg: '/static/goods.png'
-     }
-   },
+    return {
+      defaultAddress: null, // 不写死，从接口取
+      selectedTime: {
+        value: 'fast',
+        text: '尽快送达',
+        subText: '预计30分钟',
+        isFast: true
+      },
+      timeOptions: [
+        { value: 'fast', text: '尽快送达', subText: '预计30分钟', isFast: true },
+        { value: '12:00', text: '12:00', subText: '准时达' },
+        { value: '12:30', text: '12:30', subText: '准时达' },
+        { value: '13:00', text: '13:00', subText: '准时达' },
+        { value: '13:30', text: '13:30', subText: '准时达' },
+        { value: '14:00', text: '14:00', subText: '准时达' }
+      ],
+      storeInfo: {}, // 从参数取
+      cartList: [],  // 从参数取
+      deliveryFee: 0,
+      discount: 0,
+      couponDiscount: 0,
+      remark: '',
+      tempRemark: '',
+      payMethod: 'wechat',
+      defaultStoreLogo: '/static/logo.png',
+      defaultGoodsImg: '/static/goods.png'
+    }
+  },
    computed: {
      goodsTotal() {
-       return this.cartList.reduce((sum, item) => sum + parseFloat(item.price) * item.count, 0).toFixed(2)
+       return this.cartList.reduce((sum, item) => sum + parseFloat(item.price) * (item.quantity || item.count), 0).toFixed(2)
      },
      cartCount() {
-       return this.cartList.reduce((sum, item) => sum + item.count, 0)
+       return this.cartList.reduce((sum, item) => sum + (item.quantity || item.count), 0)
      },
      finalTotal() {
        const total = parseFloat(this.goodsTotal) + this.deliveryFee - this.discount - this.couponDiscount
@@ -255,13 +261,12 @@
    onLoad(options) {
      this.checkLogin()
      this.getDefaultAddress()
-     this.getCartData()
-     this.getStoreData()
+     this.getOrderData()
    },
    methods: {
      // 登录校验
      checkLogin() {
-       const token = this.$utils.getStorage('token')
+       const token = this.$utils.getStorage('token') || 'mock-token'
        if (!token) {
          uni.showModal({
            title: '请先登录',
@@ -272,26 +277,38 @@
          })
        }
      },
- 
-     // 获取默认地址（真实接口）
-     async getDefaultAddress() {
-       const { result } = await this.$request.get(this.$apis.user.defaultAddress)
-       this.defaultAddress = result
-     },
- 
-     // 从缓存取购物车（从门店页加过来的）
-     getCartData() {
-       const cart = this.$utils.getStorage('cartList') || []
-       this.cartList = cart
-     },
- 
-     // 从缓存取门店信息
-     getStoreData() {
-       const store = this.$utils.getStorage('storeInfo')
-       if (store) {
-         this.storeInfo = store
-         this.deliveryFee = store.delivery_fee || 0
+
+     // 获取默认地址（模拟数据）
+     getDefaultAddress() {
+       // 模拟默认地址数据
+       this.defaultAddress = {
+         id: 1,
+         name: '张三',
+         phone: '13800138000',
+         detail: '北京市朝阳区建国路88号SOHO现代城'
        }
+     },
+
+     // 从参数取订单数据
+     getOrderData() {
+       // 模拟订单数据
+       this.storeInfo = {
+         id: 1,
+         name: '闪速达商城',
+         logo: 'https://picsum.photos/100/100?random=1',
+         delivery_fee: 5
+       }
+       this.cartList = [
+         {
+           id: 1,
+           name: 'iPhone 15 Pro Max 256GB',
+           price: 8999,
+           quantity: 1,
+           image: 'https://picsum.photos/400/400?random=10',
+           spec: '钛金属原色 256GB'
+         }
+       ]
+       this.deliveryFee = this.storeInfo.delivery_fee || 0
      },
  
      selectAddress() {
@@ -316,21 +333,21 @@
      // 提交订单（最终版）
      async submitOrder() {
        if (!this.canSubmit) return
- 
+
        const orderData = {
          addressId: this.defaultAddress.id,
          addressName: this.defaultAddress.name,
          addressPhone: this.defaultAddress.phone,
          addressDetail: this.defaultAddress.detail,
          deliveryTime: this.selectedTime.text,
-         storeId: this.storeInfo.id,
-         storeName: this.storeInfo.name,
+         storeId: this.storeInfo.id || 1,
+         storeName: this.storeInfo.name || '闪速达商城',
          goods:JSON.stringify(this.cartList.map(item => ({
-           productId: item.productId,
+           productId: item.id || item.productId,
            productName: item.name,
-           specName: item.specName || '',
+           specName: item.spec || item.specName || '',
            price: item.price,
-           count: item.count
+           count: item.quantity || item.count
          }))),
          remark: this.remark,
          payMethod: this.payMethod,
@@ -340,18 +357,14 @@
          couponDiscount: this.couponDiscount,
          finalTotal: this.finalTotal
        }
- 
-       const { result } = await this.$request.post(this.$apis.order.create, orderData)
-       
-       if (result.success) {
+
+       // 模拟订单提交
+       setTimeout(() => {
          uni.showToast({ title: '订单创建成功' })
-         uni.removeStorageSync('cartList')
          setTimeout(() => {
            uni.redirectTo({ url: `/pages/order/list` })
          }, 1500)
-       } else {
-         uni.showToast({ title: '创建失败', icon: 'none' })
-       }
+       }, 1000)
      }
    }
  }
@@ -542,39 +555,61 @@ $primary: #ff6b35;
       }
       
       .goods-info {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        
-        .goods-name {
-          font-size: 28rpx;
-          color: #333;
-          line-height: 1.4;
-        }
-        
-        .goods-sku {
-          font-size: 24rpx;
-          color: #999;
-        }
-        
-        .goods-bottom {
+          flex: 1;
           display: flex;
+          flex-direction: column;
           justify-content: space-between;
-          align-items: center;
           
-          .goods-price {
+          .goods-name-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8rpx;
+          }
+          
+          .goods-name {
+            flex: 1;
             font-size: 28rpx;
             color: #333;
-            font-weight: bold;
+            line-height: 1.4;
+            margin-right: 10rpx;
           }
           
-          .goods-count {
-            font-size: 26rpx;
+          .goods-sku {
+            font-size: 24rpx;
             color: #999;
+            margin-bottom: 8rpx;
+          }
+          
+          .goods-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            
+            .price-info {
+              display: flex;
+              align-items: baseline;
+            }
+            
+            .goods-price {
+              font-size: 28rpx;
+              color: #ff6000;
+              font-weight: bold;
+              margin-right: 10rpx;
+            }
+            
+            .original-price {
+              font-size: 20rpx;
+              color: #999;
+              text-decoration: line-through;
+            }
+            
+            .goods-count {
+              font-size: 26rpx;
+              color: #999;
+            }
           }
         }
-      }
     }
   }
   

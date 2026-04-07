@@ -1,40 +1,39 @@
  <template>
-   <view class="flash-goods-page">
-     <!-- 轮播图 -->
-     <view class="swiper-wrap">
-       <swiper class="swiper" :indicator-dots="true" circular :autoplay="false">
-         <swiper-item v-for="(img, idx) in images" :key="idx">
-           <image class="swiper-img" :src="img" mode="aspectFill" />
-         </swiper-item>
-       </swiper>
-     </view>
- 
-     <!-- 商品信息 -->
-     <view class="goods-info">
-       <view class="price-box">
-         <text class="price">¥{{ currentPrice }}</text>
-         <text class="old-price" v-if="goods.originalPrice">¥{{ goods.originalPrice }}</text>
-       </view>
- 
-       <!-- 商品名称 + 加入购物车 / 加减 对齐 -->
-       <view class="name-cart-row">
-         <view class="goods-name">{{ goods.name }}</view>
- 
-         <!-- 已选规格 → 显示加减 -->
-         <view class="num-box" v-if="selectedSpecText">
-           <view class="num-btn" @click.stop="cutNum">-</view>
-           <view class="num-text">{{ buyNum }}</view>
-           <view class="num-btn" @click.stop="addNum">+</view>
-         </view>
- 
-         <!-- 未选规格 → 显示加入购物车 -->
-         <view class="add-cart-btn" v-else @click="toAddCart">
-           加入购物车
-         </view>
-       </view>
- 
-       <view class="sales">已售 {{ goods.sales }}件</view>
-     </view>
+  <view class="goods-detail-page">
+    <!-- 轮播图 -->
+    <view class="swiper-wrap">
+      <swiper class="swiper" :indicator-dots="true" circular :autoplay="false">
+        <swiper-item v-for="(img, idx) in images" :key="idx">
+          <image class="swiper-img" :src="img" mode="aspectFill" />
+        </swiper-item>
+      </swiper>
+    </view>
+
+    <!-- 商品信息 -->
+    <view class="goods-info">
+      <view class="price-box">
+        <text class="price">¥{{ currentPrice }}</text>
+        <text class="old-price" v-if="goods.originalPrice">¥{{ goods.originalPrice }}</text>
+      </view>
+
+      <!-- 商品名称 + 数量加减 -->
+      <view class="name-cart-row">
+        <view class="goods-name">{{ goods.name }}</view>
+        
+        <!-- 数量加减 -->
+        <view class="num-box">
+          <view class="num-btn" @click.stop="cutNum">-</view>
+          <view class="num-text">{{ buyNum }}</view>
+          <view class="num-btn" @click.stop="addNum">+</view>
+        </view>
+      </view>
+
+      <!-- 商品库存信息 -->
+      <view class="stock-info">
+        <text class="sales">已售 {{ goods.sales }}件</text>
+        <text class="stock">库存 {{ goods.stock }}件</text>
+      </view>
+    </view>
  
      <!-- 商品详情 -->
      <view class="detail-section" v-if="paramsList.length">
@@ -97,151 +96,131 @@
        </view>
      </view>
    </view>
- </template>
+</template>
  
  <script>
  export default {
    data() {
-     return {
-       goodsId: null,
-       goods: {
-         name: '黄焖鸡米饭',
-         price: 25.00,
-         originalPrice: 35.00,
-         sales: 2368,
-         stock: 120,
-         image: 'https://picsum.photos/400/400?random=1',
-         images: [
-           'https://picsum.photos/400/400?random=1',
-           'https://picsum.photos/400/400?random=2',
-           'https://picsum.photos/400/400?random=3',
-         ],
-         description: '口感鲜嫩，香气浓郁，下饭神器',
-       },
-       hasSpec: true,
-       specGroups: [
-         {
-           id: 1, name: '规格',
-           items: [
-             { id: 11, name: '小份', price: 25 },
-             { id: 12, name: '中份', price: 28 },
-             { id: 13, name: '大份', price: 33 },
-           ]
-         },
-         {
-           id: 2, name: '辣度',
-           items: [
-             { id: 21, name: '不辣' },
-             { id: 22, name: '微辣' },
-             { id: 23, name: '中辣' },
-             { id: 24, name: '特辣' },
-           ]
-         }
-       ],
-       selected: {},
-       currentPrice: 25.00,
-       buyNum: 1,
-       showSpecPopup: false,
-       paramsList: [
-         { label: '主料', value: '鸡肉' },
-         { label: '配料', value: '青椒、香菇、洋葱' },
-         { label: '保质期', value: '2天' },
-         { label: '产地', value: '本地' },
-       ]
-     }
-   },
-   computed: {
-     images() {
-       return this.goods.images || [this.goods.image]
-     },
-     selectedSpecText() {
-       let arr = []
-       this.specGroups.forEach(g => {
-         const item = g.items.find(i => i.id === this.selected[g.id])
-         if (item) arr.push(item.name)
-       })
-       return arr.join(' ')
-     }
-   },
+    return {
+      goodsId: null,
+      goods: {
+        name: 'iPhone 15 Pro Max 256GB',
+        price: 8999,
+        originalPrice: 9999,
+        sales: 150,
+        stock: 50,
+        image: 'https://picsum.photos/400/400?random=10',
+        images: [
+          'https://picsum.photos/400/400?random=10',
+          'https://picsum.photos/400/400?random=11',
+          'https://picsum.photos/400/400?random=12',
+        ],
+        description: 'A17 Pro芯片，钛金属机身，专业级摄像头系统',
+      },
+      specGroups: [
+        {
+          id: 1, name: '颜色',
+          items: [
+            { id: 11, name: '钛金属原色', price: 8999 },
+            { id: 12, name: '蓝色钛金属', price: 8999 },
+            { id: 13, name: '白色钛金属', price: 8999 },
+            { id: 14, name: '黑色钛金属', price: 8999 },
+          ]
+        },
+        {
+          id: 2, name: '存储容量',
+          items: [
+            { id: 21, name: '256GB', price: 8999 },
+            { id: 22, name: '512GB', price: 10999 },
+            { id: 23, name: '1TB', price: 12999 },
+          ]
+        }
+      ],
+      selected: {},
+      currentPrice: 8999,
+      buyNum: 1,
+      showSpecPopup: false,
+      paramsList: [
+        { label: '品牌', value: 'Apple' },
+        { label: '型号', value: 'iPhone 15 Pro Max' },
+        { label: '屏幕', value: '6.7英寸 Super Retina XDR' },
+        { label: '处理器', value: 'A17 Pro' },
+        { label: '摄像头', value: '4800万像素主摄' },
+      ]
+    }
+  },
+  computed: {
+    images() {
+      return this.goods.images || [this.goods.image]
+    }
+  },
 	 mounted(){
 		 this.goodsId = this.$Route.query.id
 		 this.initDefaultSpec()
 	 },
-   methods: {
-     initDefaultSpec() {
-       this.specGroups.forEach(g => {
-         if (g.items.length) this.selected[g.id] = g.items[0].id
-       })
-       this.calcPrice()
-     },
-     selectSpec(gid, iid) {
-       this.selected[gid] = iid
-       this.calcPrice()
-     },
-     calcPrice() {
-       const size = this.specGroups[0].items.find(i => i.id === this.selected[1])
-       this.currentPrice = size?.price || this.goods.price
-     },
-     // 加入购物车逻辑
-     toAddCart() {
-       if (this.hasSpec) {
-         this.openSpecPopup()
-         return
-       }
-       this.confirmSpec()
-     },
-     openSpecPopup() {
-       this.showSpecPopup = true
-     },
-     closeSpecPopup() {
-       this.showSpecPopup = false
-     },
-     confirmSpec() {
-       this.closeSpecPopup()
-       // 加入购物车
-       uni.showToast({
-         title: '已加入购物车',
-         icon: 'success'
-       })
-     },
-     addNum() {
-       this.buyNum++
-     },
-     cutNum() {
-       if (this.buyNum <= 1) return
-       this.buyNum--
-     },
-     toSettle() {
-       uni.navigateTo({
-         url: '/pages/order/confirm'
-       })
-     }
-   }
+  methods: {
+    initDefaultSpec() {
+      this.specGroups.forEach(g => {
+        if (g.items.length) this.selected[g.id] = g.items[0].id
+      })
+      this.calcPrice()
+    },
+    selectSpec(gid, iid) {
+      this.selected[gid] = iid
+      this.calcPrice()
+    },
+    calcPrice() {
+      const size = this.specGroups[0].items.find(i => i.id === this.selected[1])
+      this.currentPrice = size?.price || this.goods.price
+    },
+    openSpecPopup() {
+      this.showSpecPopup = true
+    },
+    closeSpecPopup() {
+      this.showSpecPopup = false
+    },
+    confirmSpec() {
+      this.closeSpecPopup()
+    },
+    addNum() {
+      this.buyNum++
+    },
+    cutNum() {
+      if (this.buyNum <= 1) return
+      this.buyNum--
+    },
+    toSettle() {
+      uni.navigateTo({
+        url: '/pages/order/confirm'
+      })
+    }
+  }
  }
  </script>
  
  <style lang="scss" scoped>
- /* 淘宝闪购 1:1 */
- .flash-goods-page {
-   background: #f5f5f5;
-   padding-bottom: 120rpx;
- }
- 
- /* 轮播 */
- .swiper-wrap {
-   width: 100%;
-   height: 700rpx;
-   background: #fff;
- }
- .swiper {
-   width: 100%;
-   height: 100%;
- }
- .swiper-img {
-   width: 100%;
-   height: 100%;
-   display: block;
- }
+/* 商品详情页面 */
+.goods-detail-page {
+  background: #f5f5f5;
+  padding-bottom: 120rpx;
+}
+
+/* 轮播 */
+.swiper-wrap {
+  width: 100%;
+  height: 700rpx;
+  background: #fff;
+  position: relative;
+}
+.swiper {
+  width: 100%;
+  height: 100%;
+}
+.swiper-img {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
  
  /* 商品信息 */
  .goods-info {
@@ -250,21 +229,29 @@
    margin-top: 10rpx;
  }
  .price-box {
-   display: flex;
-   align-items: baseline;
-   margin-bottom: 20rpx;
- }
- .price {
-   font-size: 48rpx;
-   color: #ff2442;
-   font-weight: bold;
- }
- .old-price {
-   font-size: 26rpx;
-   color: #999;
-   text-decoration: line-through;
-   margin-left: 16rpx;
- }
+  display: flex;
+  align-items: baseline;
+  margin-bottom: 20rpx;
+}
+.price {
+  font-size: 48rpx;
+  color: #ff6000;
+  font-weight: bold;
+}
+.old-price {
+  font-size: 26rpx;
+  color: #999;
+  text-decoration: line-through;
+  margin-left: 16rpx;
+}
+/* 库存信息 */
+.stock-info {
+  margin-top: 20rpx;
+  display: flex;
+  justify-content: space-between;
+  font-size: 24rpx;
+  color: #666;
+}
  
  /* 名称 + 购物车/加减 对齐 */
  .name-cart-row {
@@ -362,24 +349,24 @@
    z-index: 99;
  }
  .total {
-   font-size: 28rpx;
-   .price {
-     color: #ff2442;
-     font-weight: bold;
-     font-size: 32rpx;
-   }
- }
- .btn-settle {
-   width: 240rpx;
-   height: 70rpx;
-   background: linear-gradient(90deg, #ff2442, #ff5a3d);
-   color: #fff;
-   border-radius: 35rpx;
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   font-size: 28rpx;
- }
+  font-size: 28rpx;
+  .price {
+    color: #ff6000;
+    font-weight: bold;
+    font-size: 32rpx;
+  }
+}
+.btn-settle {
+  width: 240rpx;
+  height: 70rpx;
+  background: #ff6000;
+  color: #fff;
+  border-radius: 35rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+}
  
  /* 规格弹窗 */
  .spec-popup {
@@ -475,14 +462,14 @@
    padding: 20rpx 30rpx;
  }
  .btn-confirm {
-   width: 100%;
-   height: 80rpx;
-   background: #ff2442;
-   color: #fff;
-   border-radius: 40rpx;
-   display: flex;
-   align-items: center;
-   justify-content: center;
-   font-size: 30rpx;
- }
+  width: 100%;
+  height: 80rpx;
+  background: #ff6000;
+  color: #fff;
+  border-radius: 40rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30rpx;
+}
  </style>
