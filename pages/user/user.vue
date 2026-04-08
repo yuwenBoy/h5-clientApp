@@ -14,7 +14,11 @@
 					<text class="info-text">地址</text>
 					<uni-icons :size="20" class="uni-icon-wrapper" color="#bbb" type="arrowright" />
 				</view>
-
+				<view class="user-list-item">
+					<view class="left-icon switch"></view>
+					<text class="info-text">切换学生</text>
+					<uni-icons :size="20" class="uni-icon-wrapper" color="#bbb" type="arrowright" />
+				</view>
 				<view class="user-list-item" @click="toOrder">
 					<view class="left-icon order"></view>
 					<text class="info-text">我的订单</text>

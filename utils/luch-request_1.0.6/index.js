@@ -1,5 +1,4 @@
 import Request from './request'
-import router from '../../router/index.js'
 import utils from '../utils.js'
 
 // 判断运行环境配置接口地址 接口协议为当前访问页面协议
@@ -16,15 +15,10 @@ const FE_URL = {
 	'zhouya': 'pre.h5.fuduoka.com/zhouya',
 }
 const API_URL = {
-	'product': 'api.app.fuduoka.com',
-	'pre': 'pre.api.app.fuduoka.com',
-	'test': 'api.front.cm.test.fuduoka.com:17004',
-	'develop': '//localhost:9000/basic-api', // api.front.wujie.develop.fuduoka.com:17004
-	'ronghua': 'pre.api.app.fuduoka.com',
-	'zhouya': 'xinwei.fuli.qqjiazu.cn'
+	'develop': '//192.168.4.46:9000/basic-api', // api.front.wujie.develop.fuduoka.com:17004
 }
 // 本地
-if (location.hostname === '127.0.0.1') {
+if (location.hostname === '127.0.0.1' || location.hostname === '192.168.4.46') {
 	baseUrl = 'http://' + API_URL[NODE_ENV]
 } else {
 	// 非本地

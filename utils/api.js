@@ -1,12 +1,19 @@
-import {baseUrl} from './luch-request_1.0.6/index.js'
-import { request } from './luch-request_1.0.6/request.js';
-
 // 首页
 const index = {
 	pms_index: '/app/Index/pms_index', // 首页
 	test:'/auth/test',
 	storeList:'/client/home/storeList', // 门店列表接口
 	storeDetail:'/client/home/storeDetail', // 门店详情
+}
+
+// 商品相关接口
+const goods = {
+	detail:'/client/goods/detail', // 商品详情
+	addToCart:'/client/cart/add', // 加入购物车
+	cartList:'/client/cart/list', // 购物车列表
+	cartUpdate:'/client/cart/update', // 更新购物车
+	cartDelete:'/client/cart/delete', // 删除购物车
+	cartClear:'/client/cart/clear', // 清空购物车
 }
 
 // 用户相关接口
@@ -59,6 +66,7 @@ const common = {
 
 export default ({
 	index,
+	goods,
 	user,
 	order,
 	pay,

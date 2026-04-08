@@ -154,30 +154,11 @@
 				"navigationBarTitleText": "我的订单"
 			}
 		},
-		{
-			"path": "pages/home/myclasshourDetail",
-			"style": {
-				"navigationBarTitleText": "我的课时详情"
-			}
-		},
 		{	
 			"path" : "pages/home/search",
 			"style" : 
 			{
 				"navigationBarTitleText" : "搜索"
-			}
-		},
-
-		{
-			"path": "pages/activity/flash-sale",
-			"style": {
-				"navigationBarTitleText": "闪购活动管理"
-			}
-		},
-		{
-			"path": "pages/activity/edit",
-			"style": {
-				"navigationBarTitleText": "编辑闪购活动"
 			}
 		}
 	],

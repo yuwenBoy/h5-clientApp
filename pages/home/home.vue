@@ -31,67 +31,17 @@
 				</view>
 			</view>
 		</scroll-view>
-
-		<!-- 闪购专区 -->
-		<view class="flash-sale-section">
-			<view class="section-header">
-				<text class="section-title">限时闪购</text>
-				<view class="countdown-container">
-					<text class="countdown-label">距结束</text>
-					<view class="countdown">
-						<view class="countdown-item">{{ hours }}</view>
-						<text class=":">:</text>
-						<view class="countdown-item">{{ minutes }}</view>
-						<text class=":">:</text>
-						<view class="countdown-item">{{ seconds }}</view>
-					</view>
-				</view>
-			</view>
-			<scroll-view class="flash-sale-scroll" scroll-x="true" scroll-with-animation>
-				<view class="flash-sale-item" v-for="(item, index) in flashSaleList" :key="item.id" @click="toGoodsDetail(item)">
-					<image class="flash-sale-image" :src="item.image" mode="aspectFill" />
-					<view class="flash-sale-info">
-						<text class="flash-sale-name">{{ item.name }}</text>
-						<view class="flash-sale-price">
-							<text class="price">¥{{ item.price }}</text>
-							<text class="original-price">¥{{ item.originalPrice }}</text>
-						</view>
-						<view class="flash-sale-progress">
-							<view class="progress-bar">
-								<view class="progress-fill" :style="{ width: item.progress + '%' }"></view>
-							</view>
-							<text class="progress-text">{{ item.progress }}% 已抢</text>
-						</view>
-					</view>
-				</view>
-			</scroll-view>
-		</view>
-
-		<!-- 热门商品 -->
-		<view class="hot-goods-section">
-			<view class="section-title">热门商品</view>
-			<view class="hot-goods-list">
-				<view class="hot-goods-item" v-for="(item, index) in hotGoodsList" :key="item.id" @click="toGoodsDetail(item)">
-					<image class="hot-goods-image" :src="item.image" mode="aspectFill" />
-					<view class="hot-goods-info">
-						<text class="hot-goods-name">{{ item.name }}</text>
-						<text class="hot-goods-price">¥{{ item.price }}</text>
-					</view>
-				</view>
-			</view>
-		</view>
-
 		<!-- 推荐商家 -->
 		<view class="store-section">
-			<view class="section-title">优质商家</view>
+			<view class="section-title">附近商家</view>
 			<view class="store-list-wrapper">
 				<mescroll-uni ref="mescrollRef" @init="mescrollInit" @down="downCallback" @up="upCallback" :top="'auto'"
 					:height="'auto'" :fixed="false">
 					<view class="store-list" v-if="storeList.length > 0">
 						<view class="store-item" v-for="(store, index) in storeList" :key="store.id" @click="toStoreDetail(store)">
 							<image class="store-image"
-								:src="store.avatarImg || 'http://image.jxxqz.com:3001/fc57d5031095495fae039977ec738d01.jpeg'"
-								mode="aspectFill" />
+						:src="(store.avatarImg ? store.avatarImg.replace('image.jxxqz.com', '192.168.4.46') : 'http://image.jxxqz.com:3001/fc57d5031095495fae039977ec738d01.jpeg')"
+						mode="aspectFill" />
 							<view class="store-info">
 								<view class="store-header">
 									<text class="store-name">{{ store.storeName }}</text>
@@ -226,31 +176,6 @@
 						progress: 45
 					}
 				],
-				hotGoodsList: [{
-						id: 1,
-						name: "iPhone 15 Pro Max 256GB",
-						price: 8999,
-						image: "https://picsum.photos/300/300?random=10"
-					},
-					{
-						id: 2,
-						name: "AirPods Pro 2",
-						price: 1299,
-						image: "https://picsum.photos/300/300?random=11"
-					},
-					{
-						id: 3,
-						name: "MacBook Air M2",
-						price: 7999,
-						image: "https://picsum.photos/300/300?random=12"
-					},
-					{
-						id: 4,
-						name: "iPad Pro 12.9",
-						price: 8999,
-						image: "https://picsum.photos/300/300?random=13"
-					}
-				],
 				hours: "00",
 				minutes: "30",
 				seconds: "00",
@@ -271,22 +196,13 @@
 
  		methods: {
  			// 真实定位（修复版，必回调）
- 			getRealLocation() {
- 				this.currentLocation = "正在获取位置…";
+				getRealLocation() {
+					this.currentLocation = "正在获取位置…";
 
- 				let timeout = setTimeout(() => {
- 					console.warn("定位超时，使用IP定位");
- 					this.getIpLocation();
- 				}, 8000);
-
- 				// #ifdef H5
- 				this.getH5Location(timeout);
- 				// #endif
-
- 				// #ifndef H5
- 				this.getUniLocation(timeout);
- 				// #endif
- 			},
+					// 直接使用默认位置，避免API Key问题
+					console.log('使用默认位置');
+					this.useDefaultLocation();
+				},
 
  			// H5端使用高德JSAPI定位
  			getH5Location(timeout) {
@@ -308,40 +224,45 @@
  			},
 
  			// 初始化高德定位
- 			initAmapGeolocation(timeout) {
- 				window.AMap.plugin('AMap.Geolocation', () => {
- 					const geolocation = new window.AMap.Geolocation({
- 						enableHighAccuracy: true,
- 						timeout: 10000,
- 						buttonPosition: 'RB',
- 						zoomToAccuracy: true
- 					});
+				initAmapGeolocation(timeout) {
+					console.log('开始高德定位');
+					window.AMap.plugin('AMap.Geolocation', () => {
+						const geolocation = new window.AMap.Geolocation({
+							enableHighAccuracy: true,
+							timeout: 10000,
+							buttonPosition: 'RB',
+							zoomToAccuracy: true
+						});
 
- 					geolocation.getCurrentPosition((status, result) => {
- 						clearTimeout(timeout);
- 						if (status === 'complete') {
- 							const {
- 								lat,
- 								lng
- 							} = result.position;
- 							this.regeoAddress(lat, lng);
- 						} else {
- 							console.error('高德定位失败，尝试IP定位', result);
- 							this.getIpLocation();
- 						}
- 					});
- 				});
- 			},
+						geolocation.getCurrentPosition((status, result) => {
+							clearTimeout(timeout);
+							if (status === 'complete') {
+								console.log('高德定位成功', result);
+								const {
+									lat,
+									lng
+								} = result.position;
+								this.regeoAddress(lat, lng);
+							} else {
+								console.error('高德定位失败，尝试IP定位', result);
+								this.getIpLocation();
+							}
+						});
+					});
+				},
 
  			// IP定位（降级方案）
 				getIpLocation() {
+					console.log('开始IP定位');
 					uni.request({
 						url: "https://restapi.amap.com/v3/ip",
 						data: {
 							key: AMAP_KEY,
 							output: "json"
 						},
+						timeout: 5000,
 						success: (res) => {
+							console.log('IP定位请求成功', res.data);
 							if (res.data.status === "1" && res.data.rectangle) {
 								const rectangle = res.data.rectangle.split(';');
 								const [lng1, lat1] = rectangle[0].split(',');
@@ -351,20 +272,12 @@
 								this.currentLocation = res.data.city || "当前城市";
 								this.setLocation(centerLat, centerLng, this.currentLocation);
 							} else {
-								uni.showToast({
-									title: "IP定位失败，使用默认位置",
-									icon: "none",
-									duration: 1500
-								});
+								console.error('IP定位数据无效', res.data);
 								this.useDefaultLocation();
 							}
 						},
-						fail: () => {
-							uni.showToast({
-								title: "网络定位失败，使用默认位置",
-								icon: "none",
-								duration: 1500
-							});
+						fail: (err) => {
+							console.error('IP定位请求失败', err);
 							this.useDefaultLocation();
 						}
 					});
@@ -720,61 +633,6 @@
 			}
 		}
 	}
-
-	.hot-goods-section {
-		margin-top: 20rpx;
-		background: #fff;
-
-		.section-title {
-			padding: 30rpx;
-			font-size: 32rpx;
-			font-weight: bold;
-			border-bottom: 1rpx solid #eee;
-		}
-
-		.hot-goods-list {
-			display: flex;
-			flex-wrap: wrap;
-			padding: 0 30rpx 30rpx;
-
-			.hot-goods-item {
-				width: calc(50% - 15rpx);
-				margin-top: 30rpx;
-
-				&:nth-child(odd) {
-					margin-right: 30rpx;
-				}
-
-				.hot-goods-image {
-					width: 100%;
-					height: 300rpx;
-					border-radius: 8rpx;
-				}
-
-				.hot-goods-info {
-					margin-top: 15rpx;
-
-					.hot-goods-name {
-						display: -webkit-box;
-						-webkit-line-clamp: 2;
-						-webkit-box-orient: vertical;
-						overflow: hidden;
-						font-size: 24rpx;
-						color: #333;
-						line-height: 1.4;
-					}
-
-					.hot-goods-price {
-						margin-top: 10rpx;
-						font-size: 28rpx;
-						font-weight: bold;
-						color: #ff6000;
-					}
-				}
-			}
-		}
-	}
-
 	.store-section {
 		margin-top: 20rpx;
 

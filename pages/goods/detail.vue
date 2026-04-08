@@ -1,39 +1,47 @@
  <template>
-  <view class="goods-detail-page">
-    <!-- 轮播图 -->
-    <view class="swiper-wrap">
-      <swiper class="swiper" :indicator-dots="true" circular :autoplay="false">
-        <swiper-item v-for="(img, idx) in images" :key="idx">
-          <image class="swiper-img" :src="img" mode="aspectFill" />
-        </swiper-item>
-      </swiper>
-    </view>
-
-    <!-- 商品信息 -->
-    <view class="goods-info">
-      <view class="price-box">
-        <text class="price">¥{{ currentPrice }}</text>
-        <text class="old-price" v-if="goods.originalPrice">¥{{ goods.originalPrice }}</text>
-      </view>
-
-      <!-- 商品名称 + 数量加减 -->
-      <view class="name-cart-row">
-        <view class="goods-name">{{ goods.name }}</view>
-        
-        <!-- 数量加减 -->
-        <view class="num-box">
-          <view class="num-btn" @click.stop="cutNum">-</view>
-          <view class="num-text">{{ buyNum }}</view>
-          <view class="num-btn" @click.stop="addNum">+</view>
-        </view>
-      </view>
-
-      <!-- 商品库存信息 -->
-      <view class="stock-info">
-        <text class="sales">已售 {{ goods.sales }}件</text>
-        <text class="stock">库存 {{ goods.stock }}件</text>
-      </view>
-    </view>
+   <view class="flash-goods-page">
+     <!-- 加载状态 -->
+     <view class="loading-container" v-if="loading">
+       <uni-load-more status="loading" />
+     </view>
+     
+     <!-- 商品内容 -->
+     <template v-else>
+       <!-- 轮播图 -->
+       <view class="swiper-wrap">
+         <swiper class="swiper" :indicator-dots="true" circular :autoplay="false">
+           <swiper-item v-for="(img, idx) in images" :key="idx">
+             <image class="swiper-img" :src="img" mode="aspectFill" />
+           </swiper-item>
+         </swiper>
+       </view>
+ 
+     <!-- 商品信息 -->
+     <view class="goods-info">
+       <view class="price-box">
+         <text class="price">¥{{ currentPrice }}</text>
+         <text class="old-price" v-if="goods.originalPrice">¥{{ goods.originalPrice }}</text>
+       </view>
+ 
+       <!-- 商品名称 + 加入购物车 / 加减 对齐 -->
+       <view class="name-cart-row">
+         <view class="goods-name">{{ goods.name }}</view>
+ 
+         <!-- 已选规格 → 显示加减 -->
+         <view class="num-box" v-if="selectedSpecText">
+           <view class="num-btn" @click.stop="cutNum">-</view>
+           <view class="num-text">{{ buyNum }}</view>
+           <view class="num-btn" @click.stop="addNum">+</view>
+         </view>
+ 
+         <!-- 未选规格 → 显示加入购物车 -->
+         <view class="add-cart-btn" v-else @click="toAddCart">
+           加入购物车
+         </view>
+       </view>
+ 
+       <view class="sales">已售 {{ goods.sales }}件</view>
+     </view>
  
      <!-- 商品详情 -->
      <view class="detail-section" v-if="paramsList.length">
@@ -59,6 +67,7 @@
        </view>
        <view class="btn-settle" @click="toSettle">去结算</view>
      </view>
+    </template>
  
      <!-- 规格选择弹窗 -->
      <view class="spec-popup" v-if="showSpecPopup">
@@ -96,131 +105,190 @@
        </view>
      </view>
    </view>
-</template>
+ </template>
  
  <script>
  export default {
    data() {
-    return {
-      goodsId: null,
-      goods: {
-        name: 'iPhone 15 Pro Max 256GB',
-        price: 8999,
-        originalPrice: 9999,
-        sales: 150,
-        stock: 50,
-        image: 'https://picsum.photos/400/400?random=10',
-        images: [
-          'https://picsum.photos/400/400?random=10',
-          'https://picsum.photos/400/400?random=11',
-          'https://picsum.photos/400/400?random=12',
-        ],
-        description: 'A17 Pro芯片，钛金属机身，专业级摄像头系统',
-      },
-      specGroups: [
-        {
-          id: 1, name: '颜色',
-          items: [
-            { id: 11, name: '钛金属原色', price: 8999 },
-            { id: 12, name: '蓝色钛金属', price: 8999 },
-            { id: 13, name: '白色钛金属', price: 8999 },
-            { id: 14, name: '黑色钛金属', price: 8999 },
-          ]
-        },
-        {
-          id: 2, name: '存储容量',
-          items: [
-            { id: 21, name: '256GB', price: 8999 },
-            { id: 22, name: '512GB', price: 10999 },
-            { id: 23, name: '1TB', price: 12999 },
-          ]
-        }
-      ],
-      selected: {},
-      currentPrice: 8999,
-      buyNum: 1,
-      showSpecPopup: false,
-      paramsList: [
-        { label: '品牌', value: 'Apple' },
-        { label: '型号', value: 'iPhone 15 Pro Max' },
-        { label: '屏幕', value: '6.7英寸 Super Retina XDR' },
-        { label: '处理器', value: 'A17 Pro' },
-        { label: '摄像头', value: '4800万像素主摄' },
-      ]
-    }
-  },
-  computed: {
-    images() {
-      return this.goods.images || [this.goods.image]
-    }
-  },
-	 mounted(){
-		 this.goodsId = this.$Route.query.id
-		 this.initDefaultSpec()
-	 },
-  methods: {
-    initDefaultSpec() {
-      this.specGroups.forEach(g => {
-        if (g.items.length) this.selected[g.id] = g.items[0].id
-      })
-      this.calcPrice()
-    },
-    selectSpec(gid, iid) {
-      this.selected[gid] = iid
-      this.calcPrice()
-    },
-    calcPrice() {
-      const size = this.specGroups[0].items.find(i => i.id === this.selected[1])
-      this.currentPrice = size?.price || this.goods.price
-    },
-    openSpecPopup() {
-      this.showSpecPopup = true
-    },
-    closeSpecPopup() {
-      this.showSpecPopup = false
-    },
-    confirmSpec() {
-      this.closeSpecPopup()
-    },
-    addNum() {
-      this.buyNum++
-    },
-    cutNum() {
-      if (this.buyNum <= 1) return
-      this.buyNum--
-    },
-    toSettle() {
-      uni.navigateTo({
-        url: '/pages/order/confirm'
-      })
-    }
-  }
+     return {
+       goodsId: null,
+       goods: {
+         name: '',
+         price: 0,
+         originalPrice: 0,
+         sales: 0,
+         stock: 0,
+         image: '',
+         images: [],
+         description: '',
+         storeId: ''
+       },
+       hasSpec: false,
+       specGroups: [],
+       selected: {},
+       currentPrice: 0,
+       buyNum: 1,
+       showSpecPopup: false,
+       paramsList: [],
+       loading: false
+     }
+   },
+   computed: {
+     images() {
+       return this.goods.images && this.goods.images.length > 0 ? this.goods.images : [this.goods.image]
+     },
+     selectedSpecText() {
+       let arr = []
+       this.specGroups.forEach(g => {
+         const item = g.items.find(i => i.id === this.selected[g.id])
+         if (item) arr.push(item.name)
+       })
+       return arr.join(' ')
+     }
+   },
+   mounted() {
+     this.goodsId = this.$Route.query.id
+     if (this.goodsId) {
+       this.getGoodsDetail()
+     }
+   },
+   methods: {
+     async getGoodsDetail() {
+       if (this.loading) return
+       this.loading = true
+       try {
+         const { result } = await this.$request.post(this.$apis.goods.detail, { goodsId: this.goodsId })
+         this.goods = result.goods || {}
+         this.specGroups = result.specGroups || []
+         this.paramsList = result.paramsList || []
+         this.hasSpec = this.specGroups.length > 0
+         this.initDefaultSpec()
+       } catch (error) {
+         uni.showToast({
+           title: '获取商品详情失败',
+           icon: 'none'
+         })
+       } finally {
+         this.loading = false
+       }
+     },
+     initDefaultSpec() {
+       this.specGroups.forEach(g => {
+         if (g.items && g.items.length) {
+           this.selected[g.id] = g.items[0].id
+         }
+       })
+       this.calcPrice()
+     },
+     selectSpec(gid, iid) {
+       this.selected[gid] = iid
+       this.calcPrice()
+     },
+     calcPrice() {
+       if (this.specGroups.length === 0) {
+         this.currentPrice = this.goods.price
+         return
+       }
+       const size = this.specGroups[0].items.find(i => i.id === this.selected[this.specGroups[0].id])
+       this.currentPrice = size?.price || this.goods.price
+     },
+     toAddCart() {
+       if (this.hasSpec) {
+         this.openSpecPopup()
+         return
+       }
+       this.confirmSpec()
+     },
+     openSpecPopup() {
+       this.showSpecPopup = true
+     },
+     closeSpecPopup() {
+       this.showSpecPopup = false
+     },
+     async confirmSpec() {
+       try {
+         const params = {
+           goodsId: this.goodsId,
+           specId: this.hasSpec ? this.getSelectedSpecId() : null,
+           quantity: this.buyNum
+         }
+         await this.$request.post(this.$apis.goods.addToCart, params)
+         this.closeSpecPopup()
+         uni.showToast({
+           title: '已加入购物车',
+           icon: 'success'
+         })
+       } catch (error) {
+         uni.showToast({
+           title: '加入购物车失败',
+           icon: 'none'
+         })
+       }
+     },
+     getSelectedSpecId() {
+       if (!this.hasSpec) return null
+       const specIds = Object.values(this.selected).join(',')
+       return specIds
+     },
+     addNum() {
+       if (this.buyNum >= this.goods.stock) {
+         uni.showToast({
+           title: '库存不足',
+           icon: 'none'
+         })
+         return
+       }
+       this.buyNum++
+     },
+     cutNum() {
+       if (this.buyNum <= 1) return
+       this.buyNum--
+     },
+     toSettle() {
+       const params = {
+         goodsId: this.goodsId,
+         specId: this.hasSpec ? this.getSelectedSpecId() : null,
+         quantity: this.buyNum,
+         storeId: this.goods.storeId
+       }
+       uni.navigateTo({
+         url: `/pages/order/confirm?params=${encodeURIComponent(JSON.stringify(params))}`
+       })
+     }
+   }
  }
  </script>
  
  <style lang="scss" scoped>
-/* 商品详情页面 */
-.goods-detail-page {
-  background: #f5f5f5;
-  padding-bottom: 120rpx;
-}
+ /* 淘宝闪购 1:1 */
+ .flash-goods-page {
+   background: #f5f5f5;
+   padding-bottom: 120rpx;
+ }
 
-/* 轮播 */
-.swiper-wrap {
-  width: 100%;
-  height: 700rpx;
-  background: #fff;
-  position: relative;
-}
-.swiper {
-  width: 100%;
-  height: 100%;
-}
-.swiper-img {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
+ .loading-container {
+   display: flex;
+   justify-content: center;
+   align-items: center;
+   min-height: 100vh;
+   background: #f5f5f5;
+ }
+ 
+ /* 轮播 */
+ .swiper-wrap {
+   width: 100%;
+   height: 700rpx;
+   background: #fff;
+ }
+ .swiper {
+   width: 100%;
+   height: 100%;
+ }
+ .swiper-img {
+   width: 100%;
+   height: 100%;
+   display: block;
+ }
  
  /* 商品信息 */
  .goods-info {
@@ -229,29 +297,21 @@
    margin-top: 10rpx;
  }
  .price-box {
-  display: flex;
-  align-items: baseline;
-  margin-bottom: 20rpx;
-}
-.price {
-  font-size: 48rpx;
-  color: #ff6000;
-  font-weight: bold;
-}
-.old-price {
-  font-size: 26rpx;
-  color: #999;
-  text-decoration: line-through;
-  margin-left: 16rpx;
-}
-/* 库存信息 */
-.stock-info {
-  margin-top: 20rpx;
-  display: flex;
-  justify-content: space-between;
-  font-size: 24rpx;
-  color: #666;
-}
+   display: flex;
+   align-items: baseline;
+   margin-bottom: 20rpx;
+ }
+ .price {
+   font-size: 48rpx;
+   color: #ff2442;
+   font-weight: bold;
+ }
+ .old-price {
+   font-size: 26rpx;
+   color: #999;
+   text-decoration: line-through;
+   margin-left: 16rpx;
+ }
  
  /* 名称 + 购物车/加减 对齐 */
  .name-cart-row {
@@ -349,24 +409,24 @@
    z-index: 99;
  }
  .total {
-  font-size: 28rpx;
-  .price {
-    color: #ff6000;
-    font-weight: bold;
-    font-size: 32rpx;
-  }
-}
-.btn-settle {
-  width: 240rpx;
-  height: 70rpx;
-  background: #ff6000;
-  color: #fff;
-  border-radius: 35rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28rpx;
-}
+   font-size: 28rpx;
+   .price {
+     color: #ff2442;
+     font-weight: bold;
+     font-size: 32rpx;
+   }
+ }
+ .btn-settle {
+   width: 240rpx;
+   height: 70rpx;
+   background: linear-gradient(90deg, #ff2442, #ff5a3d);
+   color: #fff;
+   border-radius: 35rpx;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   font-size: 28rpx;
+ }
  
  /* 规格弹窗 */
  .spec-popup {
@@ -462,14 +522,14 @@
    padding: 20rpx 30rpx;
  }
  .btn-confirm {
-  width: 100%;
-  height: 80rpx;
-  background: #ff6000;
-  color: #fff;
-  border-radius: 40rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 30rpx;
-}
+   width: 100%;
+   height: 80rpx;
+   background: #ff2442;
+   color: #fff;
+   border-radius: 40rpx;
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   font-size: 30rpx;
+ }
  </style>
