@@ -40,7 +40,7 @@
 					<view class="store-list" v-if="storeList.length > 0">
 						<view class="store-item" v-for="(store, index) in storeList" :key="store.id" @click="toStoreDetail(store)">
 							<image class="store-image"
-						:src="(store.avatarImg ? store.avatarImg.replace('image.jxxqz.com', '192.168.4.46') : 'http://image.jxxqz.com:3001/fc57d5031095495fae039977ec738d01.jpeg')"
+						:src="(store.avatarImg ? $utils.processImageUrl(store.avatarImg) : $utils.processImageUrl('http://image.jxxqz.com:3001/fc57d5031095495fae039977ec738d01.jpeg'))"
 						mode="aspectFill" />
 							<view class="store-info">
 								<view class="store-header">
@@ -85,19 +85,18 @@
 	</view>
 </template>
  <script>
- 	import MescrollMixin from "@/components/mescroll-uni/mescroll-mixins.js";
-
- 	// 高德 Web服务 Key
- 	const AMAP_KEY = "a44164dfbe3191271a79f6e55b7d26b6";
- 	// 默认坐标（北京天安门）
- 	const DEFAULT_LAT = 39.9042;
- 	const DEFAULT_LNG = 116.4074;
- 	// 先配置安全密钥（必须在加载脚本前）
- 	window._AMapSecurityConfig = {
- 		securityJsCode: '91a752875c181e6ca8fca50034ba7856'
- 	};
- 	export default {
-		mixins: [MescrollMixin],
+  import MescrollMixin from "@/components/mescroll-uni/mescroll-mixins.js";
+  // 高德 Web服务 Key
+  const AMAP_KEY = "a44164dfbe3191271a79f6e55b7d26b6";
+  // 默认坐标（北京天安门）
+  const DEFAULT_LAT = 39.9042;
+  const DEFAULT_LNG = 116.4074;
+  // 先配置安全密钥（必须在加载脚本前）
+  window._AMapSecurityConfig = {
+    securityJsCode: '91a752875c181e6ca8fca50034ba7856'
+  };
+  export default {
+	mixins: [MescrollMixin],
 		data() {
 			return {
 				currentLocation: "定位中…",

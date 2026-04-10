@@ -209,25 +209,32 @@
 	}
 	
 	// 验证工具
-	 const isPhone = (phone) => /^1[3-9]\d{9}$/.test(phone);
-	 const isCode = (code) => /^\d{6}$/.test(code);
+ const isPhone = (phone) => /^1[3-9]\d{9}$/.test(phone);
+ const isCode = (code) => /^\d{6}$/.test(code);
 
-	export default {
-		goLogin,
-		isLogin,
-		isSafari,
-		getPX,getRowAndCol,
-		default_module_high,
-		default_module_wide,
-		throttle,
-		getStorage,
-		setStorage,
-		removeStorage,
-		toast,
-		checkUserSystem,
-		getRequestData,
-		isPhone,
-		isCode,
-	}
+// 处理图片URL，替换域名
+let processImageUrl = function(url) {
+	if (!url) return ''
+	return url.replace('image.jxxqz.com', '192.168.124.25')
+}
+
+export default {
+	goLogin,
+	isLogin,
+	isSafari,
+	getPX,getRowAndCol,
+	default_module_high,
+	default_module_wide,
+	throttle,
+	getStorage,
+	setStorage,
+	removeStorage,
+	toast,
+	checkUserSystem,
+	getRequestData,
+	isPhone,
+	isCode,
+	processImageUrl,
+}
 	
 	

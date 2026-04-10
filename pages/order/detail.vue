@@ -151,7 +151,23 @@ export default {
     async getOrderDetail() {
       // 真实接口：
       // const res = await this.$request.get('/order/detail', { id: this.orderId })
-      // this.order = res.result
+      // const order = res.result
+      // 
+      // // 处理图片URL
+      // if (order.storeLogo) {
+      //   order.storeLogo = this.$utils.processImageUrl(order.storeLogo)
+      // }
+      // 
+      // if (order.goods && order.goods.length > 0) {
+      //   order.goods = order.goods.map(goods => {
+      //     if (goods.img) {
+      //       goods.img = this.$utils.processImageUrl(goods.img)
+      //     }
+      //     return goods
+      //   })
+      // }
+      // 
+      // this.order = order
     },
     getStatusText(status) {
       const map = { 0: '待付款', 1: '待配送', 2: '已完成' }

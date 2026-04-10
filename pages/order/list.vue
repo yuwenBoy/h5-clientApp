@@ -100,36 +100,58 @@
   </view>
 </template>
 <script>
-	export default {
-	  data() {
-	    return {
-	      activeTab: 0, // 默认0=全部
-	      tabList: [
-	        { name: '全部', status: -1 },
-	        { name: '待付款', status: 0 },
-	        { name: '待配送', status: 1 },
-	        { name: '已完成', status: 3 }
-	      ],
-	      orderList: [],
-	      storeLogo: '/static/img/store-default.png',
-	      defaultGoodsImg: '/static/img/goods-default.png'
-	    }
-	  },
+export default {
+      data() {
+        return {
+          activeTab: 0, // 默认0=全部
+          tabList: [
+            { name: '全部', status: -1 },
+            { name: '待付款', status: 0 },
+            { name: '待配送', status: 1 },
+            { name: '已完成', status: 3 }
+          ],
+          orderList: [],
+          storeLogo: '/static/img/store-default.png',
+          defaultGoodsImg: '/static/img/goods-default.png'
+        }
+      },
 	  onShow() {
 	    this.getOrderList(0)
 	  },
 	  methods: {
 	    async getOrderList(index) {
-	      this.activeTab = index
-	      const status = this.tabList[index].status
-	      
-	      try {
-	        const res = await this.$request.post(this.$apis.order.list, { status })
-	        this.orderList = res.result || []
-	      } catch (e) {
-	        console.log(e)
-	      }
-	    },
+      this.activeTab = index
+      const status = this.tabList[index].status
+      
+      try {
+        const res = await this.$request.post(this.$apis.order.list, { status })
+        let orderList = res.result || []
+        
+        // 处理图片URL
+        orderList = orderList.map(order => {
+          // 处理门店logo
+              if (order.storeLogo) {
+                order.storeLogo = this.$utils.processImageUrl(order.storeLogo)
+              }
+              
+              // 处理商品图片
+              if (order.goods && order.goods.length > 0) {
+                order.goods = order.goods.map(goods => {
+                  if (goods.img) {
+                    goods.img = this.$utils.processImageUrl(goods.img)
+                  }
+                  return goods
+                })
+              }
+          
+          return order
+        })
+        
+        this.orderList = orderList
+      } catch (e) {
+        console.log(e)
+      }
+    },
 	
 	    // 状态文字
 	    getStatusText(status) {

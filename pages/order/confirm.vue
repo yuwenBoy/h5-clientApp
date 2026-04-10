@@ -38,13 +38,13 @@
     <!-- 3. 商品列表 -->
     <view class="goods-section">
       <view class="store-header">
-        <image class="store-icon" :src="storeInfo.logo || defaultStoreLogo" />
+        <image class="store-icon" :src="(storeInfo.logo ? $utils.processImageUrl(storeInfo.logo) : defaultStoreLogo)" />
         <text class="store-name">{{ storeInfo.name || '未获取到门店信息' }}</text>
       </view>
       
       <view class="goods-list">
         <view class="goods-item" v-for="(item, index) in cartList" :key="index">
-          <image class="goods-img" :src="item.img || defaultGoodsImg" mode="aspectFill" />
+          <image class="goods-img" :src="(item.img ? $utils.processImageUrl(item.img) : defaultGoodsImg)" mode="aspectFill" />
           <view class="goods-info">
             <text class="goods-name">{{ item.name }}</text>
             <text class="goods-sku" v-if="item.specName">{{ item.specName }}</text>
@@ -197,7 +197,7 @@
   </view>
 </template>
  <script>
- export default {
+export default {
    data() {
      return {
        defaultAddress: null, // 不写死，从接口取

@@ -15,10 +15,10 @@ const FE_URL = {
 	'zhouya': 'pre.h5.fuduoka.com/zhouya',
 }
 const API_URL = {
-	'develop': '//192.168.4.46:9000/basic-api', // api.front.wujie.develop.fuduoka.com:17004
+	'develop': '//192.168.124.25:9000/basic-api', // api.front.wujie.develop.fuduoka.com:17004
 }
 // 本地
-if (location.hostname === '127.0.0.1' || location.hostname === '192.168.4.46') {
+if (location.hostname === '127.0.0.1' || location.hostname === '192.168.124.25') {
 	baseUrl = 'http://' + API_URL[NODE_ENV]
 } else {
 	// 非本地
@@ -97,7 +97,7 @@ http.interceptor.request((config, cancel) => { /* 请求之前拦截器 */
 
 http.interceptor.response((response) => {
 	/* 请求之后拦截器 */
-	if (Number(response.data.code) === 0) { // 服务端返回的状态码不等于200，则reject()
+	if (response.data.success === true) { // 服务端返回的success等于true，则成功
 		return response.data
 	} else if (Number(response.data.code) === 1002) {
 		// cantNeedLogin: true 不需要弹出登录
@@ -116,9 +116,6 @@ http.interceptor.response((response) => {
 	} else {
 		return Promise.reject(response)
 	}
-	// if (response.config.custom.verification) { // 演示自定义参数的作用
-	//   return response.data
-	// }
 }, (response) => { // 请求错误做点什么
 	return response
 })
