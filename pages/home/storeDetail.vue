@@ -1129,7 +1129,7 @@
  			color: #fff;
  			font-size: 28rpx;
  			font-weight: bold;
- 			border-radius: 36rpx;
+ 			border-radius: 10rpx;
  			border: none;
  			
  			&.disabled {
