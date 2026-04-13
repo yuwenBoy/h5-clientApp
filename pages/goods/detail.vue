@@ -88,14 +88,49 @@
      </template>
 
      <!-- 规格选择弹窗 -->
-     <uni-spec-popup 
-       :visible="showSpecPopup"
-       :goods="goods"
-       :specGroups="specGroups"
-       @confirm="handleSpecConfirm"
-       @close="closeSpecPopup"
-     />
-   </view>
+    <uni-spec-popup 
+      :visible="showSpecPopup"
+      :goods="goods"
+      :specGroups="specGroups"
+      @confirm="handleSpecConfirm"
+      @close="closeSpecPopup"
+    />
+
+    <!-- 购物车弹窗 -->
+    <view v-if="showCart">
+      <view class="cart-overlay" @click="toggleCart"></view>
+      <view class="cart-popup-taobao">
+        <view class="cart-header">
+          <view class="cart-header-left">
+            <text class="header-title">已选商品</text>
+            <text class="cart-total">共{{ cartCount }}件</text>
+          </view>
+          <view class="clear-btn" @click="clearCart">
+            <uni-icons type="trash" size="14" color="#999"></uni-icons>
+            <text>清空</text>
+          </view>
+        </view>
+        <scroll-view scroll-y class="cart-list">
+          <view class="cart-item" v-for="(item, index) in cartList" :key="index">
+            <image :src="item.img" class="item-img" mode="aspectFill" />
+            <view class="item-info">
+              <text class="item-name">{{ item.name }}</text>
+              <text class="item-spec" v-if="item.specText">{{ item.specText }}</text>
+              <text class="item-price">¥{{ item.price.toFixed(2) }}</text>
+            </view>
+            <view class="item-stepper">
+              <view class="btn-minus" @click="updateCartItemQuantity(item, item.quantity - 1)">-</view>
+              <view class="item-quantity">{{ item.quantity }}</view>
+              <view class="btn-plus" @click="updateCartItemQuantity(item, item.quantity + 1)">+</view>
+            </view>
+          </view>
+          <view class="cart-empty" v-if="cartList.length === 0">
+            <text>购物车为空</text>
+          </view>
+        </scroll-view>
+      </view>
+    </view>
+  </view>
 </template>
 
  <script>
@@ -154,7 +189,6 @@ export default {
     },
     totalPrice() {
       try {
-        debugger
         const price = parseFloat(this.currentPrice) || 0
         const num = parseInt(this.buyNum) || 0
         return price * num
@@ -550,7 +584,7 @@ export default {
      handleSpecConfirm(data) {
        try {
          const { selected, specText, buyNum, currentPrice } = data
-         
+
          // 构建购物车项
          const cartItem = {
            id: Date.now() + Math.random(),
@@ -562,15 +596,15 @@ export default {
            quantity: buyNum,
            storeId: this.goods.storeId
          }
-         
+
          // 获取本地购物车数据
          let cartList = uni.getStorageSync('cartList') || []
-         
+
          // 检查是否已存在相同商品和规格
-         const existingIndex = cartList.findIndex(item => 
+         const existingIndex = cartList.findIndex(item =>
            item.productId === this.goodsId && item.specText === specText
          )
-         
+
          if (existingIndex >= 0) {
            // 已存在，增加数量
            cartList[existingIndex].quantity += buyNum
@@ -578,23 +612,22 @@ export default {
            // 不存在，添加新项
            cartList.push(cartItem)
          }
-         
+
          // 保存到本地存储
          uni.setStorageSync('cartList', cartList)
-         
+
          // 更新data中的cartList
          this.cartList = cartList
-         
+
          // 更新本地状态
          this.selected = selected
          this.buyNum = buyNum
          this.currentPrice = currentPrice
-         
+
          // 触发加入购物车动画
          this.triggerAddCartAnimation()
-         
-         // 显示购物车弹窗
-         this.showCart = true
+
+         // 不自动弹出购物车弹窗
        } catch (error) {
          uni.showToast({
            title: '加入购物车失败',
@@ -795,12 +828,70 @@ export default {
      
      // 切换购物车显示状态
      toggleCart() {
+       // 未选购商品时，不弹出购物车弹窗
+       if (this.cartCount === 0) {
+         return
+       }
        this.showCart = !this.showCart
+     },
+     
+     // 更新购物车商品数量
+     updateCartItemQuantity(item, quantity) {
+       if (quantity < 1) {
+         // 数量为0，移除商品
+         this.removeCartItem(item)
+         return
+       }
+       
+       try {
+         // 获取本地购物车数据
+         let cartList = uni.getStorageSync('cartList') || []
+         
+         // 找到对应商品
+         const index = cartList.findIndex(cartItem => cartItem.id === item.id)
+         if (index >= 0) {
+           // 更新数量
+           cartList[index].quantity = quantity
+           // 保存到本地存储
+           uni.setStorageSync('cartList', cartList)
+           // 更新data中的cartList
+           this.cartList = cartList
+         }
+       } catch (error) {
+         console.error('更新购物车数量失败:', error)
+       }
+     },
+     
+     // 从购物车中移除商品
+     removeCartItem(item) {
+       try {
+         // 获取本地购物车数据
+         let cartList = uni.getStorageSync('cartList') || []
+
+         // 找到对应商品并移除
+         cartList = cartList.filter(cartItem => cartItem.id !== item.id)
+
+         // 保存到本地存储
+         uni.setStorageSync('cartList', cartList)
+
+         // 更新data中的cartList
+         this.cartList = cartList
+
+         // 如果购物车为空，关闭弹窗
+         if (cartList.length === 0) {
+           this.showCart = false
+           this.buyNum = 1
+           this.selected = {}
+         }
+       } catch (error) {
+         console.error('移除购物车商品失败:', error)
+       }
      },
      
      // 清空购物车
      clearCart() {
        uni.showModal({
+
          title: '确认清空',
          content: '确定要清空购物车吗？',
          success: (res) => {
