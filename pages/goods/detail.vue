@@ -430,7 +430,11 @@ export default {
                  if (Array.isArray(attr.value)) {
                    // value是对象数组
                    const selectedLabels = attr.value.map(item => {
-                     return item.value || item.label || ''
+                     if (typeof item === 'object' && item !== null) {
+                       return item.value || item.label || ''
+                     } else {
+                       return String(item)
+                     }
                    }).filter(Boolean)
                    displayValue = selectedLabels.join('、') || '暂无'
                  } else {
@@ -457,13 +461,20 @@ export default {
                if (Array.isArray(displayValue)) {
                  // value是对象数组
                  const selectedLabels = displayValue.map(item => {
-                   return item.value || item.label || ''
+                   if (typeof item === 'object' && item !== null) {
+                     return item.value || item.label || ''
+                   } else {
+                     return String(item)
+                   }
                  }).filter(Boolean)
                  displayValue = selectedLabels.join('、') || '暂无'
                } else {
                  // value是单个对象
                  displayValue = displayValue.value || displayValue.label || '暂无'
                }
+             } else if (typeof displayValue === 'object') {
+               // 兜底处理，确保不会显示[object Object]
+               displayValue = '暂无'
              }
              
              // 如果是数字类型且有values，尝试从values中查找对应的文本
