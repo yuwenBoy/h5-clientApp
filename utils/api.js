@@ -9,11 +9,11 @@ const index = {
 // 商品相关接口
 const goods = {
 	detail:'/client/goods/detail', // 商品详情
-	addToCart:'/client/cart/add', // 加入购物车
-	cartList:'/client/cart/list', // 购物车列表
-	cartUpdate:'/client/cart/update', // 更新购物车
-	cartDelete:'/client/cart/delete', // 删除购物车
-	cartClear:'/client/cart/clear', // 清空购物车
+	// addToCart:'/client/cart/add', // 加入购物车
+	// cartList:'/client/cart/list', // 购物车列表
+	// cartUpdate:'/client/cart/update', // 更新购物车
+	// cartDelete:'/client/cart/delete', // 删除购物车
+	// cartClear:'/client/cart/clear', // 清空购物车
 }
 
 // 用户相关接口

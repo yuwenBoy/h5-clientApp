@@ -179,7 +179,8 @@
 				minutes: "30",
 				seconds: "00",
 				storeList: [],
-				isLoaded: false
+				isLoaded: false,
+				locationFound: false
 			};
 		},
 
@@ -197,30 +198,64 @@
  			// 真实定位（修复版，必回调）
 				getRealLocation() {
 					this.currentLocation = "正在获取位置…";
+					this.locationFound = false; // 重置定位标志
 
-					// 直接使用默认位置，避免API Key问题
-					console.log('使用默认位置');
-					this.useDefaultLocation();
+					// 设置超时兜底
+					const timeout = setTimeout(() => {
+						if (!this.locationFound) {
+							console.log('定位超时，使用默认位置');
+							this.useDefaultLocation();
+						}
+					}, 12000); // 延长到12秒给IP定位足够时间
+
+					// #ifdef H5
+					this.getH5Location(timeout);
+					// #endif
+
+					// #ifndef H5
+					this.getUniLocation(timeout);
+					// #endif
 				},
 
- 			// H5端使用高德JSAPI定位
- 			getH5Location(timeout) {
+			// H5端使用浏览器原生定位（关闭高精度模式更快）
+			getH5Location(timeout) {
+				if (navigator.geolocation) {
+					navigator.geolocation.getCurrentPosition(
+						(position) => {
+							clearTimeout(timeout);
+							const lat = position.coords.latitude;
+							const lng = position.coords.longitude;
+							console.log('浏览器定位成功', lat, lng);
+							this.regeoAddress(lat, lng);
+						},
+						(err) => {
+							console.error('浏览器定位失败', err);
+							this.getFreeIpLocation();
+						},
+						{ enableHighAccuracy: false, timeout: 3000, maximumAge: 600000 }
+					);
+				} else {
+					this.getFreeIpLocation();
+				}
+			},
 
- 				if (typeof window.AMap === 'undefined') {
- 					const script = document.createElement('script');
- 					script.src = `https://webapi.amap.com/maps?v=2.0&key=${AMAP_KEY}&plugin=AMap.Geolocation`;
- 					script.onload = () => {
- 						this.initAmapGeolocation(timeout);
- 					};
- 					script.onerror = () => {
- 						clearTimeout(timeout);
- 						this.getIpLocation();
- 					};
- 					document.head.appendChild(script);
- 				} else {
- 					this.initAmapGeolocation(timeout);
- 				}
- 			},
+			// 高德定位（降级方案）
+			getAmapLocation(timeout) {
+				if (typeof window.AMap === 'undefined') {
+					const script = document.createElement('script');
+					script.src = `https://webapi.amap.com/maps?v=2.0&key=${AMAP_KEY}&plugin=AMap.Geolocation`;
+					script.onload = () => {
+						this.initAmapGeolocation(timeout);
+					};
+					script.onerror = () => {
+						clearTimeout(timeout);
+						this.getIpLocation();
+					};
+					document.head.appendChild(script);
+				} else {
+					this.initAmapGeolocation(timeout);
+				}
+			},
 
  			// 初始化高德定位
 				initAmapGeolocation(timeout) {
@@ -251,46 +286,139 @@
 				},
 
  			// IP定位（降级方案）
-				getIpLocation() {
-					console.log('开始IP定位');
-					uni.request({
-						url: "https://restapi.amap.com/v3/ip",
-						data: {
-							key: AMAP_KEY,
-							output: "json"
-						},
-						timeout: 5000,
-						success: (res) => {
-							console.log('IP定位请求成功', res.data);
-							if (res.data.status === "1" && res.data.rectangle) {
-								const rectangle = res.data.rectangle.split(';');
-								const [lng1, lat1] = rectangle[0].split(',');
-								const [lng2, lat2] = rectangle[1].split(',');
-								const centerLat = (parseFloat(lat1) + parseFloat(lat2)) / 2;
-								const centerLng = (parseFloat(lng1) + parseFloat(lng2)) / 2;
-								this.currentLocation = res.data.city || "当前城市";
-								this.setLocation(centerLat, centerLng, this.currentLocation);
-							} else {
-								console.error('IP定位数据无效', res.data);
-								this.useDefaultLocation();
-							}
-						},
-						fail: (err) => {
-							console.error('IP定位请求失败', err);
-							this.useDefaultLocation();
+			getIpLocation() {
+				console.log('开始高德IP定位');
+				uni.request({
+					url: "https://restapi.amap.com/v3/ip",
+					data: {
+						key: AMAP_KEY,
+						output: "json"
+					},
+					timeout: 3000,
+					success: (res) => {
+						console.log('高德IP定位请求成功', res.data);
+						if (res.data.status === "1" && res.data.rectangle) {
+							const rectangle = res.data.rectangle.split(';');
+							const [lng1, lat1] = rectangle[0].split(',');
+							const [lng2, lat2] = rectangle[1].split(',');
+							const centerLat = (parseFloat(lat1) + parseFloat(lat2)) / 2;
+							const centerLng = (parseFloat(lng1) + parseFloat(lng2)) / 2;
+							this.currentLocation = res.data.city || "当前城市";
+							this.setLocation(centerLat, centerLng, this.currentLocation);
+						} else {
+							console.error('高德IP定位数据无效', res.data);
+							this.getFreeIpLocation();
 						}
-					});
-				},
+					},
+					fail: (err) => {
+						console.error('高德IP定位请求失败', err);
+						this.getFreeIpLocation();
+					}
+				});
+			},
 
-				// 使用默认坐标
-				useDefaultLocation() {
-					this.currentLocation = "北京市";
-					this.latitude = DEFAULT_LAT;
-					this.longitude = DEFAULT_LNG;
-					this.$nextTick(() => {
-						this.mescroll?.resetUpScroll();
-					});
-				},
+			// 免费IP定位（JSONP方式）
+			getFreeIpLocation() {
+				console.log('开始腾讯IP定位(JSONP)');
+				const callbackName = 'qqLocCallback_' + Date.now();
+				const script = document.createElement('script');
+				
+				window[callbackName] = (res) => {
+					console.log('腾讯IP定位结果', res);
+					delete window[callbackName];
+					if (res?.status === 0 && res?.result?.location) {
+						const loc = res.result.location;
+						const city = res.result.ad_info?.city || "当前城市";
+						this.setLocation(loc.lat, loc.lng, city);
+					} else {
+						// 备用ip-api
+						this.getIpApiLocation();
+					}
+				};
+				
+				script.src = `https://apis.map.qq.com/ws/location/v1/ip?key=OB4BZ-D4W3U-B7VVO-4PJWW-6TKDJ-WPB77&output=jsonp&callback=${callbackName}`;
+				script.onerror = () => {
+					delete window[callbackName];
+					this.getIpApiLocation();
+				};
+				
+				setTimeout(() => {
+					if (window[callbackName]) {
+						delete window[callbackName];
+						this.getIpApiLocation();
+					}
+				}, 3000);
+				
+				document.head.appendChild(script);
+			},
+
+		// 备用IP定位（使用IPInfo服务）
+			getIpApiLocation() {
+				console.log('开始IPInfo定位');
+				// 使用 ipinfo.io JSONP（支持https，无需Key）
+				const callbackName = 'ipinfoCallback_' + Date.now();
+				const script = document.createElement('script');
+				
+				window[callbackName] = (data) => {
+					console.log('IPInfo定位结果', data);
+					delete window[callbackName];
+					// ipinfo返回的是 "lat,lng" 字符串
+					if (data?.loc) {
+						const [lat, lng] = data.loc.split(',');
+						// 优先使用region（省份）+ city，或者中文映射
+						let city = data.city || "当前城市";
+						// 常见城市英文转中文
+						const cityMap = {
+							'Beijing': '北京',
+							'Shanghai': '上海',
+							'Guangzhou': '广州',
+							'Shenzhen': '深圳',
+							'Chengdu': '成都',
+							'Hangzhou': '杭州',
+							'Wuhan': '武汉',
+							'Xi\'an': '西安',
+							'Nanjing': '南京',
+							'Chongqing': '重庆'
+						};
+						city = cityMap[city] || city;
+						this.setLocation(parseFloat(lat), parseFloat(lng), city);
+					} else {
+						this.useDefaultLocation();
+					}
+				};
+				
+				script.src = `https://ipinfo.io/json?callback=${callbackName}`;
+				script.onerror = () => {
+					delete window[callbackName];
+					this.useDefaultLocation();
+				};
+				
+				setTimeout(() => {
+					if (window[callbackName]) {
+						delete window[callbackName];
+						this.useDefaultLocation();
+					}
+				}, 3000);
+				
+				document.head.appendChild(script);
+			},
+
+		// 使用默认坐标
+			useDefaultLocation() {
+				this.locationFound = true; // 标记已完成定位流程
+				this.currentLocation = "点击选择位置";
+				this.latitude = DEFAULT_LAT;
+				this.longitude = DEFAULT_LNG;
+				// 提示用户可以手动选择位置
+				uni.showToast({
+					title: '定位失败，请点击选择位置',
+					icon: 'none',
+					duration: 2000
+				});
+				this.$nextTick(() => {
+					this.mescroll?.resetUpScroll();
+				});
+			},
 
  			// 小程序/App端定位
 				getUniLocation(timeout) {
@@ -338,34 +466,97 @@
  				});
  			},
 
- 			// 点击 → 直接打开地图选点
- 			chooseLocation() {
- 				uni.chooseLocation({
- 					success: (res) => {
- 						this.setLocation(res.latitude, res.longitude, res.name || res.address);
- 					},
- 					fail: (err) => {
- 						if (err.errMsg && err.errMsg.includes("cancel")) return;
- 						uni.showToast({
- 							title: "选择位置失败",
- 							icon: "none"
- 						});
- 					}
- 				});
- 			},
+		// 点击 → 打开地图选点
+			chooseLocation() {
+				// 使用uni原生选点（无需Key，支持搜索）
+				uni.chooseLocation({
+					success: (res) => {
+						this.setLocation(res.latitude, res.longitude, res.name || res.address);
+					},
+					fail: (err) => {
+						if (err.errMsg && err.errMsg.includes("cancel")) return;
+						uni.showToast({
+							title: "选择位置失败",
+							icon: "none"
+						});
+					}
+				});
+			},
 
- 			// 保存位置并刷新商家
- 			setLocation(lat, lng, name) {
- 				this.latitude = lat;
- 				this.longitude = lng;
- 				this.currentLocation = name;
- 				uni.setStorageSync("locationInfo", {
- 					name,
- 					lat,
- 					lng
- 				});
- 				this.mescroll?.resetUpScroll();
- 			},
+			// H5端：腾讯地图选点组件（支持关键词搜索）
+			openTencentMapPicker() {
+				const key = 'YDKBZ-SDO6W-JIZRD-3NX5T-3UHKJ-INFBD'; // 替换为你的腾讯Key
+				const referer = '外卖APP'; // 你的应用名称
+				
+				// 打开腾讯地图选点组件
+				const url = `https://apis.map.qq.com/tools/locpicker?search=1&type=0&key=${key}&referer=${referer}`;
+				
+				// 创建iframe弹窗
+				const pickerDiv = document.createElement('div');
+				pickerDiv.id = 'tencentMapPicker';
+				pickerDiv.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;background:#fff;';
+				pickerDiv.innerHTML = `
+					<iframe id="mapPickerFrame" src="${url}" width="100%" height="100%" frameborder="0"></iframe>
+					<div style="position:absolute;top:10px;right:10px;z-index:10000;display:flex;gap:10px;">
+						<button id="confirmPicker" style="padding:8px 16px;background:#07c160;color:#fff;border:none;border-radius:4px;font-size:14px;">确定</button>
+						<button id="closePicker" style="padding:8px 16px;background:#ff6000;color:#fff;border:none;border-radius:4px;font-size:14px;">关闭</button>
+					</div>
+					<div id="pickerStatus" style="position:absolute;bottom:60px;left:50%;transform:translateX(-50%);z-index:10000;background:rgba(0,0,0,0.7);color:#fff;padding:8px 16px;border-radius:20px;font-size:12px;display:none;">请在地图上选择位置</div>
+				`;
+				document.body.appendChild(pickerDiv);
+				
+				let selectedLocation = null;
+				const statusDiv = document.getElementById('pickerStatus');
+				
+				// 关闭按钮
+				document.getElementById('closePicker').onclick = () => {
+					document.body.removeChild(pickerDiv);
+					window.removeEventListener('message', messageHandler);
+				};
+				
+				// 确定按钮
+				document.getElementById('confirmPicker').onclick = () => {
+					if (selectedLocation) {
+						this.setLocation(selectedLocation.lat, selectedLocation.lng, selectedLocation.name);
+						document.body.removeChild(pickerDiv);
+						window.removeEventListener('message', messageHandler);
+					} else {
+						statusDiv.textContent = '请先在地图上点击选择位置';
+						statusDiv.style.display = 'block';
+						setTimeout(() => statusDiv.style.display = 'none', 2000);
+					}
+				};
+				
+				// 监听选点结果
+				const messageHandler = (event) => {
+					const loc = event.data;
+					if (loc && loc.module === 'locationPicker') {
+						console.log('腾讯地图选点结果:', loc);
+						selectedLocation = {
+							lat: loc.latlng?.lat,
+							lng: loc.latlng?.lng,
+							name: loc.poiname || loc.poiaddress || '选中位置'
+						};
+						statusDiv.textContent = '已选择: ' + selectedLocation.name;
+						statusDiv.style.display = 'block';
+					}
+				};
+				window.addEventListener('message', messageHandler);
+			},
+
+		// 保存位置并刷新商家
+			setLocation(lat, lng, name) {
+				this.locationFound = true; // 标记定位成功
+				this.latitude = lat;
+				this.longitude = lng;
+				this.currentLocation = name;
+				uni.setStorageSync("locationInfo", {
+					name,
+					lat,
+					lng
+				});
+				this.mescroll?.resetUpScroll();
+			},
 
  			// 下拉刷新
  			downCallback() {

@@ -279,20 +279,20 @@ export default {
        this.defaultAddress = result
      },
  
-     // 从缓存取购物车（从门店页加过来的）
-     getCartData() {
-       const cart = this.$utils.getStorage('cartList') || []
-       this.cartList = cart
-     },
- 
-     // 从缓存取门店信息
-     getStoreData() {
-       const store = this.$utils.getStorage('storeInfo')
-       if (store) {
-         this.storeInfo = store
-         this.deliveryFee = store.delivery_fee || 0
-       }
-     },
+    // 从缓存取购物车（从门店页加过来的）
+    getCartData() {
+      const cart = uni.getStorageSync('cartList') || []
+      this.cartList = cart
+    },
+
+    // 从缓存取门店信息
+    getStoreData() {
+      const store = uni.getStorageSync('storeInfo')
+      if (store) {
+        this.storeInfo = store
+        this.deliveryFee = store.delivery_fee || 0
+      }
+    },
  
      selectAddress() {
        uni.navigateTo({ url: '/pages/address/list?select=true' })
@@ -341,17 +341,22 @@ export default {
          finalTotal: this.finalTotal
        }
  
-       const { result } = await this.$request.post(this.$apis.order.create, orderData)
-       
-       if (result.success) {
-         uni.showToast({ title: '订单创建成功' })
-         uni.removeStorageSync('cartList')
-         setTimeout(() => {
-           uni.redirectTo({ url: `/pages/order/list` })
-         }, 1500)
-       } else {
-         uni.showToast({ title: '创建失败', icon: 'none' })
-       }
+      const res = await this.$request.post(this.$apis.order.create, orderData)
+      
+      // 调试：打印创建订单接口返回
+      console.log('创建订单接口返回:', res)
+      
+      // 兼容多种返回格式
+      const isSuccess = res.code === 0 || res.code === 200 || res.success === true
+      if (isSuccess) {
+        uni.showToast({ title: '订单创建成功' })
+        uni.removeStorageSync('cartList')
+        setTimeout(() => {
+          uni.redirectTo({ url: `/pages/order/list` })
+        }, 1500)
+      } else {
+        uni.showToast({ title: res.message || '创建失败', icon: 'none' })
+      }
      }
    }
  }

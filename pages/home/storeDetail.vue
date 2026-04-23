@@ -261,8 +261,8 @@
  				goodsScrollTop: 0,
  				isClicking: false,
  				sectionTops: [],
- 				showCart: false,
- 				cartList: [],
+			showCart: false,
+			cartList: uni.getStorageSync('cartList') || [],
  				defaultLogo: 'https://picsum.photos/100/100?random=10',
  				storeId: null,
  				storeInfo: {},
@@ -315,10 +315,15 @@
 			if (this.storeId) this.getStoreDetail(this.storeId)
 			this.calcNoticeDuration()
 		},
- 		onLoad(option) {
- 			if (this.storeId) this.getStoreDetail(this.storeId)
- 			this.calcNoticeDuration()
- 		},
+		onLoad(option) {
+			if (this.storeId) this.getStoreDetail(this.storeId)
+			this.calcNoticeDuration()
+		},
+
+		onShow() {
+			// 同步本地购物车数据
+			this.cartList = uni.getStorageSync('cartList') || []
+		},
  
  		onReady() {
  			setTimeout(() => this.calcSectionTops(), 100)
@@ -361,23 +366,25 @@
  				return items.reduce((sum, item) => sum + item.count, 0)
  			},
  
- 			// 减少多规格商品数量
- 			decreaseSpecGoods(goods) {
- 				// 找到该商品的最后一个购物车项
- 				const items = this.cartList.filter(i => i.productId === goods.productId)
- 				if (items.length === 0) return
- 				
- 				// 找到最后一个加入的项的索引
- 				const lastIndex = this.cartList.findLastIndex(i => i.productId === goods.productId)
- 				if (lastIndex < 0) return
- 				
- 				const item = this.cartList[lastIndex]
- 				if (item.count > 1) {
- 					item.count--
- 				} else {
- 					this.cartList.splice(lastIndex, 1)
- 				}
- 			},
+			// 减少多规格商品数量
+			decreaseSpecGoods(goods) {
+				// 找到该商品的最后一个购物车项
+				const items = this.cartList.filter(i => i.productId === goods.productId)
+				if (items.length === 0) return
+				
+				// 找到最后一个加入的项的索引
+				const lastIndex = this.cartList.findLastIndex(i => i.productId === goods.productId)
+				if (lastIndex < 0) return
+				
+				const item = this.cartList[lastIndex]
+				if (item.count > 1) {
+					item.count--
+				} else {
+					this.cartList.splice(lastIndex, 1)
+				}
+				// 同步到本地存储
+				uni.setStorageSync('cartList', this.cartList)
+			},
  
  			// 打开规格弹窗
  			openSpec(goods, isAddMode = false) {
@@ -441,76 +448,83 @@
  				}
  			},
  
- 			// 确认加入购物车
- 			confirmAddCart() {
- 				if (!this.currentGood) return
- 				
- 				const specText = this.selectedSpecText
- 				
- 				// 查找是否已存在相同规格的商品
- 				const existIndex = this.cartList.findIndex(i => 
- 					i.productId === this.currentGood.productId && 
- 					i.specText === specText
- 				)
- 				
- 				if (existIndex >= 0) {
- 					// 已存在相同规格，数量+1
- 					this.cartList[existIndex].count++
- 				} else {
- 					// 新增规格项
- 					this.cartList.push({
- 						productId: this.currentGood.productId,
- 						name: this.currentGood.name,
- 						img: this.currentGood.img,
- 						price: this.currentPrice,
- 						specId: this.currentGood.defaultSpec?.specId,
- 						specText: specText,
- 						selectedOptions: { ...this.selectedOptions },
- 						count: 1
- 					})
- 				}
- 				
- 				this.closeSpecPopup()
- 			},
+			// 确认加入购物车
+			confirmAddCart() {
+				if (!this.currentGood) return
+				
+				const specText = this.selectedSpecText
+				
+				// 查找是否已存在相同规格的商品
+				const existIndex = this.cartList.findIndex(i => 
+					i.productId === this.currentGood.productId && 
+					i.specText === specText
+				)
+				
+				if (existIndex >= 0) {
+					// 已存在相同规格，数量+1
+					this.cartList[existIndex].count++
+				} else {
+					// 新增规格项
+					this.cartList.push({
+						productId: this.currentGood.productId,
+						name: this.currentGood.name,
+						img: this.currentGood.img,
+						price: this.currentPrice,
+						specId: this.currentGood.defaultSpec?.specId,
+						specText: specText,
+						selectedOptions: { ...this.selectedOptions },
+						count: 1
+					})
+				}
+				
+				// 同步到本地存储
+				uni.setStorageSync('cartList', this.cartList)
+				
+				this.closeSpecPopup()
+			},
  
  			toggleCart() {
  				if (this.cartCount === 0) return
  				this.showCart = !this.showCart
  			},
  
- 			increaseGoods(goods) {
- 				if (this.hasSpecs(goods)) {
- 					this.openSpec(goods, true)
- 					return
- 				}
- 				this.addCart(goods, goods.defaultSpec, '')
- 			},
+			increaseGoods(goods) {
+				if (this.hasSpecs(goods)) {
+					this.openSpec(goods, true)
+					return
+				}
+				this.addCart(goods, goods.defaultSpec, '')
+			},
  
- 			decreaseGoods(goods) {
- 				const idx = this.cartList.findIndex(i => i.productId === goods.productId && !i.specText)
- 				if (idx < 0) return
- 				const item = this.cartList[idx]
- 				item.count > 1 ? item.count-- : this.cartList.splice(idx, 1)
- 			},
+			decreaseGoods(goods) {
+				const idx = this.cartList.findIndex(i => i.productId === goods.productId && !i.specText)
+				if (idx < 0) return
+				const item = this.cartList[idx]
+				item.count > 1 ? item.count-- : this.cartList.splice(idx, 1)
+				// 同步到本地存储
+				uni.setStorageSync('cartList', this.cartList)
+			},
  
- 			addCart(goods, spec, specText) {
- 				const exist = this.cartList.find(i =>
- 					i.productId === goods.productId && i.specId === spec.specId && i.specText === specText
- 				)
- 				if (exist) {
- 					exist.count++
- 				} else {
- 					this.cartList.push({
- 						productId: goods.productId,
- 						name: goods.name,
- 						img: goods.img,
- 						price: spec.price,
- 						specId: spec.specId,
- 						specText: specText,
- 						count: 1
- 					})
- 				}
- 			},
+			addCart(goods, spec, specText) {
+				const exist = this.cartList.find(i =>
+					i.productId === goods.productId && i.specId === spec.specId && i.specText === specText
+				)
+				if (exist) {
+					exist.count++
+				} else {
+					this.cartList.push({
+						productId: goods.productId,
+						name: goods.name,
+						img: goods.img,
+						price: spec.price,
+						specId: spec.specId,
+						specText: specText,
+						count: 1
+					})
+				}
+				// 同步到本地存储
+				uni.setStorageSync('cartList', this.cartList)
+			},
  
  			// 跳转到商品详情
  			goToDetail(goods) {
@@ -550,39 +564,45 @@
  				}
  			},
  
- 			increaseCartItem(index) {
- 				this.cartList[index].count++
- 			},
+			increaseCartItem(index) {
+				this.cartList[index].count++
+				// 同步到本地存储
+				uni.setStorageSync('cartList', this.cartList)
+			},
  
- 			decreaseCartItem(index) {
- 				const item = this.cartList[index]
- 				item.count > 1 ? item.count-- : this.cartList.splice(index, 1)
- 				if (this.cartList.length === 0) {
- 					this.showCart = false
- 				}
- 			},
+			decreaseCartItem(index) {
+				const item = this.cartList[index]
+				item.count > 1 ? item.count-- : this.cartList.splice(index, 1)
+				if (this.cartList.length === 0) {
+					this.showCart = false
+				}
+				// 同步到本地存储
+				uni.setStorageSync('cartList', this.cartList)
+			},
  
- 			clearCart() {
- 				uni.showModal({
- 					title: '清空购物车',
- 					content: '确定清空吗？',
- 					success: res => {
- 						if (res.confirm) {
- 							this.cartList = []
- 							this.showCart = false
- 						}
- 					}
- 				})
- 			},
+			clearCart() {
+				uni.showModal({
+					title: '清空购物车',
+					content: '确定清空吗？',
+					success: res => {
+						if (res.confirm) {
+							this.cartList = []
+							this.showCart = false
+							// 同步到本地存储
+							uni.setStorageSync('cartList', [])
+						}
+					}
+				})
+			},
  
- 			submitOrder() {
- 				if (!this.canSubmit) return
- 				this.$utils.setStorage('cartList', this.cartList)
- 				this.$utils.setStorage('storeInfo', this.storeInfo)
- 				uni.navigateTo({
- 					url: `/pages/order/confirm?storeId=${this.storeInfo.id}&total=${this.cartPrice}`
- 				})
- 			},
+			submitOrder() {
+				if (!this.canSubmit) return
+				uni.setStorageSync('cartList', this.cartList)
+				uni.setStorageSync('storeInfo', this.storeInfo)
+				uni.navigateTo({
+					url: `/pages/order/confirm?storeId=${this.storeInfo.id}&total=${this.cartPrice}`
+				})
+			},
  
  			callPhone(phone) {
  				uni.makePhoneCall({ phoneNumber: phone })

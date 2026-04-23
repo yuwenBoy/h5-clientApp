@@ -65,26 +65,28 @@
 
        <!-- 加入购物车动画元素 -->
        <view class="add-cart-animation" v-if="showAddCartAnimation" :style="animationStyle"></view>
-       <!-- 底部结算栏 -->
-       <view class="submit-bar" :class="{ 'cart-open': showCart }">
-         <!-- 结算栏主体 -->
-         <view class="submit-content" @click="toggleCart">
-           <view class="cart-icon" :class="{ active: cartCount > 0 }">
-             <image class="cart-img" src="/static/img/cart.png" mode="aspectFill" />
-             <view class="cart-badge" v-if="cartCount > 0">{{ cartCount }}</view>
-           </view>
-           <view class="price-info">
-             <view class="price-row" v-if="cartCount > 0">
-               <text class="total">¥{{ totalPrice.toFixed(2) }}</text>
-               <text class="delivery-fee">配送费¥5</text>
-             </view>
-             <view class="price-row" v-else>
-               <text class="empty-tip">未选购商品</text>
-             </view>
-           </view>
-         </view>
-         <view class="btn-settle" :class="{ disabled: totalPrice <= 0 }" @click="toSettle">去结算</view>
-       </view>
+      <!-- 底部结算栏 -->
+      <view class="submit-bar" :class="{ 'cart-open': showCart }">
+        <!-- 结算栏主体 -->
+        <view class="submit-content" @click="toggleCart">
+          <view class="cart-icon" :class="{ active: cartCount > 0 }">
+            <image class="cart-img" src="/static/img/cart.png" mode="aspectFill" />
+            <view class="cart-badge" v-if="cartCount > 0">{{ cartCount }}</view>
+          </view>
+          <view class="price-info">
+            <view class="price-row" v-if="cartCount > 0">
+              <text class="total">¥{{ cartTotalPrice.toFixed(2) }}</text>
+              <text class="delivery-fee">配送费¥{{ storeInfo.delivery_fee || 5 }}</text>
+            </view>
+            <view class="price-row" v-else>
+              <text class="empty-tip">未选购商品</text>
+            </view>
+          </view>
+        </view>
+        <view class="btn-settle" :class="{ disabled: !canSubmit }" :disabled="!canSubmit" @click="toSettle">
+          {{ settleBtnText }}
+        </view>
+      </view>
      </template>
 
      <!-- 规格选择弹窗 -->
@@ -116,12 +118,12 @@
             <view class="item-info">
               <text class="item-name">{{ item.name }}</text>
               <text class="item-spec" v-if="item.specText">{{ item.specText }}</text>
-              <text class="item-price">¥{{ item.price.toFixed(2) }}</text>
+              <text class="item-price">¥{{ Number(item.price || 0).toFixed(2) }}</text>
             </view>
             <view class="item-stepper">
-              <view class="btn-minus" @click="updateCartItemQuantity(item, item.quantity - 1)">-</view>
-              <view class="item-quantity">{{ item.quantity }}</view>
-              <view class="btn-plus" @click="updateCartItemQuantity(item, item.quantity + 1)">+</view>
+              <view class="btn-minus" @click="updateCartItemQuantity(item, item.count - 1)">-</view>
+              <view class="item-quantity">{{ item.count }}</view>
+              <view class="btn-plus" @click="updateCartItemQuantity(item, item.count + 1)">+</view>
             </view>
           </view>
           <view class="cart-empty" v-if="cartList.length === 0">
@@ -166,7 +168,11 @@ export default {
      showAddCartAnimation: false,
      animationStyle: {},
      cartList: [],
-     showCart: false
+     showCart: false,
+     storeInfo: {
+       delivery_fee: 5,
+       min_order_amount: 30
+     }
     }
   },
    computed: {
@@ -199,11 +205,32 @@ export default {
     },
     cartCount() {
       try {
-        return this.cartList.reduce((sum, item) => sum + (item.quantity || 0), 0)
+        return this.cartList.reduce((sum, item) => sum + (item.count || 0), 0)
       } catch (error) {
         console.error('获取购物车数量失败:', error)
         return 0
       }
+    },
+    // 购物车商品总价（用于起送金额计算）
+    cartTotalPrice() {
+      try {
+        return this.cartList.reduce((sum, item) => sum + (item.price * item.count), 0)
+      } catch (error) {
+        return 0
+      }
+    },
+    // 是否可以结算（满足起送金额）
+    canSubmit() {
+      return this.cartCount > 0 && this.cartTotalPrice >= (this.storeInfo.min_order_amount || 30)
+    },
+    // 结算按钮文字
+    settleBtnText() {
+      if (this.cartCount === 0) return '去结算'
+      const minAmount = this.storeInfo.min_order_amount || 30
+      if (this.cartTotalPrice < minAmount) {
+        return `差¥${(minAmount - this.cartTotalPrice).toFixed(1)}起送`
+      }
+      return '去结算'
     }
   },
    mounted() {
@@ -233,11 +260,20 @@ export default {
      }
    },
    
-   onShow() {
-     if (this.goodsId) {
-       this.checkCartStatus()
-     }
-   },
+  onShow() {
+    // 同步购物车数据（从本地存储获取最新数据）
+    this.cartList = uni.getStorageSync('cartList') || []
+    
+    // 获取门店信息（从本地存储获取）
+    const storeInfo = uni.getStorageSync('storeInfo')
+    if (storeInfo) {
+      this.storeInfo = storeInfo
+    }
+    
+    if (this.goodsId) {
+      this.checkCartStatus()
+    }
+  },
    methods: {
      async getGoodsDetail() {
        if (this.loading) return
@@ -293,6 +329,16 @@ export default {
            console.log('菜系value:', cuisineAttr.value)
            console.log('菜系values:', JSON.stringify(cuisineAttr.values, null, 2))
          }
+         
+         // 找到主料/辅料属性并打印详细信息
+         const mainAttr = dynamicAttributes.find(attr => attr.attributeName === '主料')
+         if (mainAttr) {
+           console.log('主料属性:', JSON.stringify(mainAttr, null, 2))
+         }
+         const subAttr = dynamicAttributes.find(attr => attr.attributeName === '辅料')
+         if (subAttr) {
+           console.log('辅料属性:', JSON.stringify(subAttr, null, 2))
+         }
          this.processDynamicAttributes(dynamicAttributes)
        } catch (error) {
          uni.showToast({
@@ -306,27 +352,27 @@ export default {
        }
      },
      
-     // 检查购物车状态
-     checkCartStatus() {
-       if (!this.goodsId) return
-       
-       // 获取本地购物车数据并更新到data中
-       this.cartList = uni.getStorageSync('cartList') || []
-       
-       // 检查是否有当前商品的购物车记录
-       const cartItem = this.cartList.find(item => item.productId === this.goodsId)
-       
-       // 如果有购物车记录，更新购买数量和当前价格
-       if (cartItem) {
-         this.buyNum = cartItem.quantity || 1
-         this.currentPrice = cartItem.price || this.goods.price || 0
-         
-         // 确保已经选择了规格
-         if (Object.keys(this.selected).length === 0 && this.specGroups.length > 0) {
-           this.initDefaultSpec()
-         }
-       }
-     },
+    // 检查购物车状态
+    checkCartStatus() {
+      if (!this.goodsId) return
+      
+      // 获取本地购物车数据并更新到data中
+      this.cartList = uni.getStorageSync('cartList') || []
+      
+      // 检查是否有当前商品的购物车记录
+      const cartItem = this.cartList.find(item => item.productId === this.goodsId)
+      
+      // 如果有购物车记录，更新购买数量和当前价格
+      if (cartItem) {
+        this.buyNum = cartItem.count || 1
+        this.currentPrice = cartItem.price || this.goods.price || 0
+        
+        // 确保已经选择了规格
+        if (Object.keys(this.selected).length === 0 && this.specGroups.length > 0) {
+          this.initDefaultSpec()
+        }
+      }
+    },
      
 
      
@@ -349,7 +395,7 @@ export default {
        this.paramsList = []
        
        attributes.forEach(attr => {
-         // attributeType: 1=文本, 2=数字, 3=单选, 4=多选
+         // attributeType: 1=文本, 2=级联, 3=下拉, 4=多选
          if (attr.attributeType === 2 || attr.attributeType === 3 || attr.attributeType === 4) {
            // 对于单选和多选类型，添加到参数列表中显示
            if (attr.value || attr.values) {
@@ -390,40 +436,100 @@ export default {
                    // 如果没有value，但有values，显示所有选项
                    displayValue = attr.values.map(v => v.value || v.label || '').filter(Boolean).join('、')
                  }
-               } else if (attr.value) {
-                 // 处理单选情况，value是单个ID
-                 const valueIds = String(attr.value).split(',')
-                 const selectedLabels = valueIds.map(id => {
-                   // 递归查找选项（支持深层嵌套）
-                   const selectedValue = this.findOptionById(attr.values, id.trim())
-                   
-                   // 优先使用value字段，如果为空则使用label字段
-                   if (selectedValue) {
-                     // 检查是否有子选项，如果有则显示子选项
-                     if (selectedValue.children && selectedValue.children.length > 0) {
-                       // 只显示家常菜子选项
-                       const homeCooking = selectedValue.children.find(child => child.value === '家常菜' || child.label === '家常菜')
-                       if (homeCooking) {
-                         return homeCooking.value || homeCooking.label || id
-                       }
-                       // 如果没有找到家常菜，显示所有子选项
-                       const childLabels = selectedValue.children.map(child => child.value || child.label || '').filter(Boolean)
-                       if (childLabels.length > 0) {
-                         return childLabels.join('、')
-                       }
+              } else if (attr.value) {
+             // 处理value是对象的情况（后端直接返回选中的值）
+             if (typeof attr.value === 'object' && !Array.isArray(attr.value)) {
+              // 对于级联类型，需要查找对应的选项并显示其子选项
+              if (attr.attributeType === 2) {
+                const valueId = attr.value.id
+                const parentId = attr.value.parent_id
+                // 根据ID查找完整选项信息
+                const selectedValue = this.findOptionById(attr.values, String(valueId))
+                
+                if (selectedValue) {
+                  // 如果找到的值有子选项，显示子选项（解决后端只存父选项问题）
+                  if (selectedValue.children && selectedValue.children.length > 0) {
+                    const childLabels = selectedValue.children.map(child => child.value || child.label || '').filter(Boolean)
+                    if (childLabels.length > 0) {
+                      displayValue = childLabels.join('、')
+                    } else {
+                      displayValue = selectedValue.value || selectedValue.label || attr.value.value || attr.value.id || '暂无'
+                    }
+                  } else {
+                    // 如果没有子选项，检查是否有 parent_id，说明这是一个子选项
+                    if (parentId) {
+                      // 这是一个子选项，查找其父选项下所有子选项（获取同级选项）
+                      const siblingOptions = attr.values.filter(v => v.parent_id === parentId)
+                      if (siblingOptions.length > 0) {
+                        // 显示所有同级子选项（包括当前选中的）
+                        const siblingLabels = siblingOptions.map(opt => opt.value || opt.label || '').filter(Boolean)
+                        displayValue = siblingLabels.join('、')
+                      } else {
+                        displayValue = attr.value.value || attr.value.label || '暂无'
+                      }
+                    } else {
+                      // 父选项但没有子选项，查找 attr.values 中 parent_id 等于当前 id 的子选项
+                      const childOption = attr.values.find(v => v.parent_id === valueId)
+                      if (childOption) {
+                        displayValue = childOption.value || childOption.label || '暂无'
+                      } else {
+                        displayValue = selectedValue.value || selectedValue.label || attr.value.value || attr.value.id || '暂无'
+                      }
+                    }
+                  }
+                } else {
+                  displayValue = attr.value.value || attr.value.label || attr.value.id || '暂无'
+                }
+              } else {
+                  const valueId = attr.value.id
+                  // 根据ID查找完整选项信息
+                  const selectedValue = this.findOptionById(attr.values, String(valueId))
+                  
+                  if (selectedValue) {
+                    // 如果找到的值有子选项，显示子选项（解决后端只存父选项问题）
+                    if (selectedValue.children && selectedValue.children.length > 0) {
+                      const childLabels = selectedValue.children.map(child => child.value || child.label || '').filter(Boolean)
+                     if (childLabels.length > 0) {
+                       displayValue = childLabels.join('、')
+                     } else {
+                       displayValue = selectedValue.value || selectedValue.label || attr.value.value || attr.value.id || '暂无'
                      }
-                     return selectedValue.value || selectedValue.label || id
                    } else {
-                     return id
+                     displayValue = selectedValue.value || selectedValue.label || attr.value.value || attr.value.id || '暂无'
                    }
-                 }).filter(label => label)
-                 
-                 displayValue = selectedLabels.join('、') || '暂无'
-               } else {
-                 // 如果没有value，但有values，显示所有选项
-                 // 优先使用value字段
-                 displayValue = attr.values.map(v => v.value || v.label || '').filter(Boolean).join('、')
-               }
+                } else {
+                  displayValue = attr.value.value || attr.value.label || attr.value.id || '暂无'
+                }
+                }
+              } else {
+                // 处理单选情况，value是单个ID或逗号分隔的ID列表
+                const valueIds = String(attr.value).split(',')
+                const selectedLabels = valueIds.map(id => {
+                  // 递归查找选项（支持深层嵌套）
+                  const selectedValue = this.findOptionById(attr.values, id.trim())
+                  
+                  // 如果找到的值有子选项，显示子选项（解决后端只存父选项问题）
+                  if (selectedValue) {
+                    if (selectedValue.children && selectedValue.children.length > 0) {
+                      // 显示所有子选项
+                      const childLabels = selectedValue.children.map(child => child.value || child.label || '').filter(Boolean)
+                      if (childLabels.length > 0) {
+                        return childLabels.join('、')
+                      }
+                    }
+                    return selectedValue.value || selectedValue.label || id
+                  } else {
+                    return id
+                  }
+                }).filter(label => label)
+                
+                displayValue = selectedLabels.join('、') || '暂无'
+              }
+            } else {
+                // 如果没有value，但有values，显示所有选项
+                // 优先使用value字段
+                displayValue = attr.values.map(v => v.value || v.label || '').filter(Boolean).join('、')
+              }
              } else if (attr.value) {
                // 处理value是对象的情况
                if (typeof attr.value === 'object' && attr.value !== null) {
@@ -452,51 +558,32 @@ export default {
              })
            }
          } else {
-           // 参数类型 (1=文本, 2=数字)
+           // 参数类型 (1=文本)
            if (attr.value || attr.attributeName) {
-             let displayValue = attr.value || '暂无'
+             let displayValue = '暂无'
              
-             // 处理value是对象的情况
-             if (typeof displayValue === 'object' && displayValue !== null) {
-               if (Array.isArray(displayValue)) {
-                 // value是对象数组
-                 const selectedLabels = displayValue.map(item => {
-                   if (typeof item === 'object' && item !== null) {
-                     return item.value || item.label || ''
-                   } else {
-                     return String(item)
-                   }
-                 }).filter(Boolean)
-                 displayValue = selectedLabels.join('、') || '暂无'
+             // 优先处理value字段
+             if (attr.value) {
+               // value可能是字符串（直接存储的文本值，如主料辅料）
+               if (typeof attr.value === 'string') {
+                 displayValue = attr.value
+               } else if (typeof attr.value === 'object') {
+                 // value是对象（可能是 {id, value} 结构）
+                 if (Array.isArray(attr.value)) {
+                   const selectedLabels = attr.value.map(item => {
+                     if (typeof item === 'object' && item !== null) {
+                       return item.value || item.label || ''
+                     } else {
+                       return String(item)
+                     }
+                   }).filter(Boolean)
+                   displayValue = selectedLabels.join('、') || '暂无'
+              } else {
+                // 单个对象，取value或label字段，如果都为空则取id字段
+                displayValue = attr.value.value || attr.value.label || attr.value.id || '暂无'
+              }
                } else {
-                 // value是单个对象
-                 displayValue = displayValue.value || displayValue.label || '暂无'
-               }
-             } else if (typeof displayValue === 'object') {
-               // 兜底处理，确保不会显示[object Object]
-               displayValue = '暂无'
-             }
-             
-             // 如果是数字类型且有values，尝试从values中查找对应的文本
-             if (attr.attributeType === 2 && attr.values && attr.values.length > 0 && attr.value) {
-               const valueId = String(attr.value).trim()
-               
-               // 直接在顶层values中查找（因为value对应顶层ID）
-               let selectedValue = attr.values.find(v => v.id == valueId)
-               
-               // 如果找到，使用value字段
-               if (selectedValue) {
-                 // 检查是否有子选项，如果有则显示子选项
-                 if (selectedValue.children && selectedValue.children.length > 0) {
-                   const childLabels = selectedValue.children.map(child => child.value || child.label || '').filter(Boolean)
-                   if (childLabels.length > 0) {
-                     displayValue = childLabels.join('、')
-                   } else {
-                     displayValue = selectedValue.value || selectedValue.label || attr.value
-                   }
-                 } else {
-                   displayValue = selectedValue.value || selectedValue.label || attr.value
-                 }
+                 displayValue = String(attr.value)
                }
              }
              
@@ -592,51 +679,59 @@ export default {
        this.showSpecPopup = false
      },
      
-     handleSpecConfirm(data) {
-       try {
-         const { selected, specText, buyNum, currentPrice } = data
+    handleSpecConfirm(data) {
+      try {
+        const { selected, specText, buyNum, currentPrice } = data
 
-         // 构建购物车项
-         const cartItem = {
-           id: Date.now() + Math.random(),
-           productId: this.goodsId,
-           name: this.goods.name,
-           img: this.goods.image,
-           price: currentPrice,
-           specText: specText,
-           quantity: buyNum,
-           storeId: this.goods.storeId
-         }
+        // 获取当前选中的规格ID（与门店页保持一致）
+        const specId = this.goods.defaultSpec ? this.goods.defaultSpec.specId : null
 
-         // 获取本地购物车数据
-         let cartList = uni.getStorageSync('cartList') || []
+        // 构建购物车项（与门店页数据结构保持一致）
+        const cartItem = {
+          productId: this.goodsId,
+          name: this.goods.name,
+          img: this.goods.image,
+          price: currentPrice,
+          specId: specId,
+          specText: specText,
+          count: buyNum,
+          storeId: this.goods.storeId
+        }
 
-         // 检查是否已存在相同商品和规格
-         const existingIndex = cartList.findIndex(item =>
-           item.productId === this.goodsId && item.specText === specText
-         )
+        // 获取本地购物车数据
+        let cartList = uni.getStorageSync('cartList') || []
 
-         if (existingIndex >= 0) {
-           // 已存在，增加数量
-           cartList[existingIndex].quantity += buyNum
-         } else {
-           // 不存在，添加新项
-           cartList.push(cartItem)
-         }
+        // 检查是否已存在相同商品和规格（与门店页保持一致的判断逻辑）
+        const existingIndex = cartList.findIndex(item =>
+          item.productId === this.goodsId && 
+          item.specId === specId && 
+          item.specText === specText
+        )
 
-         // 保存到本地存储
-         uni.setStorageSync('cartList', cartList)
+        if (existingIndex >= 0) {
+          // 已存在，增加数量
+          cartList[existingIndex].count += buyNum
+        } else {
+          // 不存在，添加新项
+          cartList.push(cartItem)
+        }
 
-         // 更新data中的cartList
-         this.cartList = cartList
+        // 保存到本地存储
+        uni.setStorageSync('cartList', cartList)
+        
+        // 保存门店信息到本地存储（用于起送金额计算）
+        uni.setStorageSync('storeInfo', this.storeInfo)
 
-         // 更新本地状态
-         this.selected = selected
-         this.buyNum = buyNum
-         this.currentPrice = currentPrice
+        // 更新data中的cartList
+        this.cartList = cartList
 
-         // 触发加入购物车动画
-         this.triggerAddCartAnimation()
+        // 更新本地状态
+        this.selected = selected
+        this.buyNum = buyNum
+        this.currentPrice = currentPrice
+
+        // 触发加入购物车动画
+        this.triggerAddCartAnimation()
 
          // 不自动弹出购物车弹窗
        } catch (error) {
@@ -647,47 +742,53 @@ export default {
        }
      },
      
-     // 更新购物车中的商品数量
-     updateCartItem() {
-       try {
-         const specText = this.selectedSpecText
-         const currentPrice = this.currentPrice || this.goods.price || 0
-         
-         // 获取本地购物车数据
-         let cartList = uni.getStorageSync('cartList') || []
-         
-         // 找到当前商品的购物车记录
-         const existingIndex = cartList.findIndex(item => 
-           item.productId === this.goodsId && item.specText === specText
-         )
-         
-         if (existingIndex >= 0) {
-           // 已存在，更新数量
-           cartList[existingIndex].quantity = this.buyNum
-         } else {
-           // 不存在，添加新项
-           const cartItem = {
-             id: Date.now() + Math.random(),
-             productId: this.goodsId,
-             name: this.goods.name,
-             img: this.goods.image,
-             price: currentPrice,
-             specText: specText,
-             quantity: this.buyNum,
-             storeId: this.goods.storeId
-           }
-           cartList.push(cartItem)
-         }
-         
-         // 保存到本地存储
-         uni.setStorageSync('cartList', cartList)
-         
-         // 更新data中的cartList
-         this.cartList = cartList
-       } catch (error) {
-         console.error('更新购物车失败:', error)
-       }
-     },
+    // 更新购物车中的商品数量
+    updateCartItem() {
+      try {
+        const specText = this.selectedSpecText
+        const currentPrice = this.currentPrice || this.goods.price || 0
+        const specId = this.goods.defaultSpec ? this.goods.defaultSpec.specId : null
+        
+        // 获取本地购物车数据
+        let cartList = uni.getStorageSync('cartList') || []
+        
+        // 找到当前商品的购物车记录（与门店页保持一致的判断逻辑）
+        const existingIndex = cartList.findIndex(item => 
+          item.productId === this.goodsId && 
+          item.specId === specId && 
+          item.specText === specText
+        )
+        
+        if (existingIndex >= 0) {
+          // 已存在，更新数量
+          cartList[existingIndex].count = this.buyNum
+        } else {
+          // 不存在，添加新项（与门店页数据结构保持一致）
+          const cartItem = {
+            productId: this.goodsId,
+            name: this.goods.name,
+            img: this.goods.image,
+            price: currentPrice,
+            specId: specId,
+            specText: specText,
+            count: this.buyNum,
+            storeId: this.goods.storeId
+          }
+          cartList.push(cartItem)
+        }
+        
+        // 保存到本地存储
+        uni.setStorageSync('cartList', cartList)
+        
+        // 保存门店信息到本地存储（用于起送金额计算）
+        uni.setStorageSync('storeInfo', this.storeInfo)
+        
+        // 更新data中的cartList
+        this.cartList = cartList
+      } catch (error) {
+        console.error('更新购物车失败:', error)
+      }
+    },
      
      // 触发加入购物车动画
      triggerAddCartAnimation() {
@@ -846,58 +947,63 @@ export default {
        this.showCart = !this.showCart
      },
      
-     // 更新购物车商品数量
-     updateCartItemQuantity(item, quantity) {
-       if (quantity < 1) {
-         // 数量为0，移除商品
-         this.removeCartItem(item)
-         return
-       }
-       
-       try {
-         // 获取本地购物车数据
-         let cartList = uni.getStorageSync('cartList') || []
-         
-         // 找到对应商品
-         const index = cartList.findIndex(cartItem => cartItem.id === item.id)
-         if (index >= 0) {
-           // 更新数量
-           cartList[index].quantity = quantity
-           // 保存到本地存储
-           uni.setStorageSync('cartList', cartList)
-           // 更新data中的cartList
-           this.cartList = cartList
-         }
-       } catch (error) {
-         console.error('更新购物车数量失败:', error)
-       }
-     },
+    // 更新购物车商品数量
+    updateCartItemQuantity(item, quantity) {
+      if (quantity < 1) {
+        // 数量为0，移除商品
+        this.removeCartItem(item)
+        return
+      }
+      
+      try {
+        // 获取本地购物车数据
+        let cartList = uni.getStorageSync('cartList') || []
+        
+        // 找到对应商品（使用 productId 和 specText 匹配，与门店页保持一致）
+        const index = cartList.findIndex(cartItem => 
+          cartItem.productId === item.productId && 
+          cartItem.specText === item.specText
+        )
+        if (index >= 0) {
+          // 更新数量
+          cartList[index].count = quantity
+          // 保存到本地存储
+          uni.setStorageSync('cartList', cartList)
+          // 更新data中的cartList
+          this.cartList = cartList
+        }
+      } catch (error) {
+        console.error('更新购物车数量失败:', error)
+      }
+    },
      
-     // 从购物车中移除商品
-     removeCartItem(item) {
-       try {
-         // 获取本地购物车数据
-         let cartList = uni.getStorageSync('cartList') || []
+    // 从购物车中移除商品
+    removeCartItem(item) {
+      try {
+        // 获取本地购物车数据
+        let cartList = uni.getStorageSync('cartList') || []
 
-         // 找到对应商品并移除
-         cartList = cartList.filter(cartItem => cartItem.id !== item.id)
+        // 找到对应商品并移除（使用 productId 和 specText 匹配，与门店页保持一致）
+        cartList = cartList.filter(cartItem => 
+          !(cartItem.productId === item.productId && cartItem.specText === item.specText)
+        )
 
-         // 保存到本地存储
-         uni.setStorageSync('cartList', cartList)
+        // 保存到本地存储
+        uni.setStorageSync('cartList', cartList)
 
-         // 更新data中的cartList
-         this.cartList = cartList
+        // 更新data中的cartList
+        this.cartList = cartList
 
-         // 如果购物车为空，关闭弹窗
-         if (cartList.length === 0) {
-           this.showCart = false
-           this.buyNum = 1
-           this.selected = {}
-         }
-       } catch (error) {
-         console.error('移除购物车商品失败:', error)
-       }
-     },
+        // 如果购物车为空，关闭弹窗
+        if (cartList.length === 0) {
+          this.showCart = false
+          this.buyNum = 1
+          this.selected = {}
+        }
+      } catch (error) {
+        console.error('移除购物车商品失败:', error)
+      }
+    },
      
      // 清空购物车
      clearCart() {
