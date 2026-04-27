@@ -303,8 +303,10 @@
 							const [lng2, lat2] = rectangle[1].split(',');
 							const centerLat = (parseFloat(lat1) + parseFloat(lat2)) / 2;
 							const centerLng = (parseFloat(lng1) + parseFloat(lng2)) / 2;
-							this.currentLocation = res.data.city || "当前城市";
-							this.setLocation(centerLat, centerLng, this.currentLocation);
+							const city = res.data.city || "当前城市";
+							// 先显示城市名，同时通过逆地理编码获取具体地址
+							this.currentLocation = city;
+							this.regeoAddress(centerLat, centerLng, city);
 						} else {
 							console.error('高德IP定位数据无效', res.data);
 							this.getFreeIpLocation();
@@ -328,8 +330,10 @@
 					delete window[callbackName];
 					if (res?.status === 0 && res?.result?.location) {
 						const loc = res.result.location;
-						const city = res.result.ad_info?.city || "当前城市";
-						this.setLocation(loc.lat, loc.lng, city);
+						const city = res.result.ad_info?.city || res.result.ad_info?.province || "当前城市";
+						// 先显示城市名，同时通过逆地理编码获取具体地址
+						this.currentLocation = city;
+						this.regeoAddress(loc.lat, loc.lng, city);
 					} else {
 						// 备用ip-api
 						this.getIpApiLocation();
@@ -365,9 +369,9 @@
 					// ipinfo返回的是 "lat,lng" 字符串
 					if (data?.loc) {
 						const [lat, lng] = data.loc.split(',');
-						// 优先使用region（省份）+ city，或者中文映射
-						let city = data.city || "当前城市";
-						// 常见城市英文转中文
+						const latNum = parseFloat(lat);
+						const lngNum = parseFloat(lng);
+						// 城市名映射
 						const cityMap = {
 							'Beijing': '北京',
 							'Shanghai': '上海',
@@ -380,8 +384,11 @@
 							'Nanjing': '南京',
 							'Chongqing': '重庆'
 						};
+						let city = data.city || "当前城市";
 						city = cityMap[city] || city;
-						this.setLocation(parseFloat(lat), parseFloat(lng), city);
+						// 先显示城市名，同时通过逆地理编码获取具体地址
+						this.currentLocation = city;
+						this.regeoAddress(latNum, lngNum, city);
 					} else {
 						this.useDefaultLocation();
 					}
@@ -444,27 +451,28 @@
 					});
 				},
 
- 			// 高德逆地理编码
- 			regeoAddress(lat, lng) {
- 				uni.request({
- 					url: "https://restapi.amap.com/v3/geocode/regeo",
- 					data: {
- 						key: AMAP_KEY,
- 						location: `${lng},${lat}`,
- 						output: "json"
- 					},
- 					success: (res) => {
- 						let addr = "当前位置";
- 						if (res.data.status === "1") {
- 							addr = res.data.regeocode.formatted_address;
- 						}
- 						this.setLocation(lat, lng, addr);
- 					},
- 					fail: () => {
- 						this.setLocation(lat, lng, "当前位置");
- 					}
- 				});
- 			},
+			// 高德逆地理编码
+			regeoAddress(lat, lng, fallbackName = null) {
+				uni.request({
+					url: "https://restapi.amap.com/v3/geocode/regeo",
+					data: {
+						key: AMAP_KEY,
+						location: `${lng},${lat}`,
+						output: "json"
+					},
+					success: (res) => {
+						let addr = fallbackName || "当前位置";
+						if (res.data.status === "1" && res.data.regeocode?.formatted_address) {
+							addr = res.data.regeocode.formatted_address;
+						}
+						this.setLocation(lat, lng, addr);
+					},
+					fail: () => {
+						// 逆地理编码失败，使用传入的fallbackName或默认值
+						this.setLocation(lat, lng, fallbackName || "当前位置");
+					}
+				});
+			},
 
 		// 点击 → 打开地图选点
 			chooseLocation() {
@@ -576,16 +584,22 @@
  					lng: lng
  				};
 
- 				this.$request.post(this.$apis.index.storeList, params).then(res => {
- 					const arr = res.result.content || [];
- 					const total = res.result.totalElements || 0;
- 					if (page.num === 1) this.storeList = [];
- 					this.storeList = this.storeList.concat(arr);
- 					this.isLoaded = true;
- 					this.mescroll.endSuccess(arr.length, total);
- 				}).catch(() => {
- 					this.mescroll.endErr();
- 				});
+				this.$request.post(this.$apis.index.storeList, params).then(res => {
+					const arr = res.result.content || [];
+					const total = res.result.totalElements || 0;
+					// 处理距离单位：公里 -> km
+					arr.forEach(store => {
+						if (store.distanceText) {
+							store.distanceText = store.distanceText.replace('公里', 'km');
+						}
+					});
+					if (page.num === 1) this.storeList = [];
+					this.storeList = this.storeList.concat(arr);
+					this.isLoaded = true;
+					this.mescroll.endSuccess(arr.length, total);
+				}).catch(() => {
+					this.mescroll.endErr();
+				});
  			},
 
  			toSearchPage() {
@@ -605,12 +619,28 @@
 			},
 			// 跳转到门店详情
 			toStoreDetail(store) {
-				this.$Router.push({
-					path: '/pages/home/storeDetail',
-					query: {
-					  id: store.id
-					}
-				})
+				// 已打烊门店给出提示
+				if (store.business_status === '已打烊' || store.business_status === '休息中') {
+					uni.showModal({
+						title: '门店' + store.business_status,
+						content: '该门店当前' + store.business_status + '，您可查看商品但暂时无法下单',
+						confirmText: '仍要查看',
+						cancelText: '返回',
+						success: (res) => {
+							if (res.confirm) {
+								this.$Router.push({
+									path: '/pages/home/storeDetail',
+									query: { id: store.id }
+								});
+							}
+						}
+					});
+				} else {
+					this.$Router.push({
+						path: '/pages/home/storeDetail',
+						query: { id: store.id }
+					});
+				}
 			}
 		}
 	};

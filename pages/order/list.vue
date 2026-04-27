@@ -1,5 +1,14 @@
 <template>
   <view class="order-list-page">
+    <!-- 自定义导航栏 -->
+    <view class="custom-nav">
+      <view class="nav-back" @click="goBack">
+        <text class="back-arrow">‹</text>
+      </view>
+      <text class="nav-title">订单列表</text>
+      <view class="nav-right"></view>
+    </view>
+    
     <!-- 顶部状态切换 -->
     <view class="order-tab">
       <view 
@@ -196,15 +205,42 @@ export default {
       refreshing: false,
       page: 1,
       pageSize: 10,
-      noMore: false
+      noMore: false,
+      navigating: false // 防止重复跳转
     }
   },
   
-  onShow() {
+  onLoad() {
     this.refreshList()
   },
   
+  onShow() {
+    // 只在有数据时刷新，避免首次加载重复
+    if (this.orderList.length > 0) {
+      this.refreshList()
+    }
+  },
+  
   methods: {
+    // 返回上一页
+    goBack() {
+      if (this.navigating) return
+      this.navigating = true
+      
+      // 直接返回，不做复杂判断
+      uni.navigateBack({
+        fail: () => {
+          // 如果没有上一页，回到首页
+          uni.switchTab({ url: '/pages/home/home' })
+        },
+        complete: () => {
+          setTimeout(() => {
+            this.navigating = false
+          }, 300)
+        }
+      })
+    },
+    
     // 切换标签
     switchTab(index) {
       if (this.activeTab === index) return
@@ -497,6 +533,52 @@ $primary: #ff6b35;
   background: #f5f5f5;
   display: flex;
   flex-direction: column;
+  padding-top: calc(var(--status-bar-height) + 88rpx);
+}
+
+// 自定义导航栏
+.custom-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: calc(var(--status-bar-height) + 88rpx);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--status-bar-height) 30rpx 0;
+  z-index: 999;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+  
+  .nav-back {
+    width: 88rpx;
+    height: 88rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    .back-arrow {
+      font-size: 48rpx;
+      color: #333;
+      font-weight: bold;
+      line-height: 1;
+    }
+    
+    &:active {
+      opacity: 0.6;
+    }
+  }
+  
+  .nav-title {
+    font-size: 36rpx;
+    font-weight: 600;
+    color: #333;
+  }
+  
+  .nav-right {
+    width: 60rpx;
+  }
 }
 
 // 顶部tab

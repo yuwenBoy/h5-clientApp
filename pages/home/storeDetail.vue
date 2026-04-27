@@ -6,26 +6,40 @@
  			<view class="store-info">
  				<image class="store-logo" :src="storeInfo.logo || defaultLogo" />
  				<view class="store-meta">
- 					<view class="store-name">{{ storeInfo.name }}</view>
- 					<view class="store-simple">
- 						<text class="sales">月售{{ storeInfo.monthly_sales || 999 }}</text>
- 						<text class="time">{{ storeInfo.delivery_time || 30 }}分钟</text>
- 					</view>
+					<view class="store-name">
+						{{ storeInfo.name }}
+						<view class="status-tag" :class="storeStatusClass" v-if="storeStatusText">{{ storeStatusText }}</view>
+					</view>
+					<view class="store-simple">
+						<text class="sales">月售{{ storeInfo.monthly_sales || 999 }}</text>
+						<text class="time">{{ storeInfo.delivery_time || 30 }}分钟</text>
+					</view>
+					<view class="business-time" v-if="storeInfo.business_hours">
+						<text class="time-label">营业时间：</text>
+						<text class="time-value" :class="{ 'closed': !isBusinessOpen }">{{ storeInfo.business_hours }}</text>
+						<text class="status-hint" v-if="!isBusinessOpen">（{{ storeStatusText }}）</text>
+					</view>
  				</view>
  			</view>
  		</view>
  
- 		<!-- 2. Tab切换 -->
- 		<view class="tab-bar">
- 			<view class="tab-item" :class="{ active: activeTab === 'menu' }" @click="activeTab = 'menu'">
- 				点餐
- 			</view>
- 			<view class="tab-item" :class="{ active: activeTab === 'merchant' }" @click="activeTab = 'merchant'">
- 				商家
- 			</view>
- 		</view>
- 
- 		<!-- 3. 点餐Tab -->
+		<!-- 2. Tab切换 -->
+		<view class="tab-bar">
+			<view class="tab-item" :class="{ active: activeTab === 'menu' }" @click="activeTab = 'menu'">
+				点餐
+			</view>
+			<view class="tab-item" :class="{ active: activeTab === 'merchant' }" @click="activeTab = 'merchant'">
+				商家
+			</view>
+		</view>
+
+		<!-- 门店休息提示条（淘宝闪购风格） -->
+		<view class="store-closed-notice" v-if="!isBusinessOpen">
+			<uni-icons type="info-filled" size="14" color="#ff4d4f" />
+			<text class="notice-text">门店{{ storeInfo.status == 0 || storeInfo.status == '0' ? '已打烊' : '休息中' }}，营业时间 {{ storeInfo.business_hours || '09:00-22:00' }}</text>
+		</view>
+
+		<!-- 3. 点餐Tab -->
  		<view class="tab-content" v-show="activeTab === 'menu'">
  			<view class="notice-bar" v-if="storeInfo.notice">
  				<view class="notice-icon">公告</view>
@@ -61,37 +75,37 @@
  										<text class="price-symbol">¥</text>
  										<text class="price-value">{{ goods.defaultSpec.price }}</text>
  									</view>
- 									<!-- 多规格显示加减按钮（和单规格一样） -->
- 									<view class="stepper" v-if="hasSpecs(goods)">
- 										<!-- 已选过规格，显示数量加减 -->
- 										<template v-if="getSpecGoodsCount(goods) > 0">
- 											<view class="btn-minus" @click.stop="decreaseSpecGoods(goods)">
- 												<text class="minus-icon">−</text>
- 											</view>
- 											<text class="stepper-num">{{ getSpecGoodsCount(goods) }}</text>
- 											<view class="btn-plus" @click.stop="openSpec(goods, true)">
- 												<text class="plus-icon">+</text>
- 											</view>
- 										</template>
- 										<!-- 未选过，显示选规格按钮 -->
- 										<template v-else>
- 											<view class="btn-select-spec" @click.stop="openSpec(goods, false)">
- 												选规格
- 											</view>
- 										</template>
- 									</view>
- 									<!-- 单规格显示加减按钮 -->
- 									<view class="stepper" v-else>
- 										<view class="btn-minus" v-if="getGoodsCount(goods) > 0" @click.stop="decreaseGoods(goods)">
- 											<text class="minus-icon">−</text>
- 										</view>
- 										<text class="stepper-num" v-if="getGoodsCount(goods) > 0">
- 											{{ getGoodsCount(goods) }}
- 										</text>
- 										<view class="btn-plus" @click.stop="increaseGoods(goods)">
- 											<text class="plus-icon">+</text>
- 										</view>
- 									</view>
+								<!-- 多规格显示加减按钮（和单规格一样） -->
+								<view class="stepper" v-if="hasSpecs(goods)">
+									<!-- 已选过规格，显示数量加减 -->
+									<template v-if="getSpecGoodsCount(goods) > 0">
+										<view class="btn-minus" @click.stop="isBusinessOpen ? decreaseSpecGoods(goods) : showClosedToast()">
+											<text class="minus-icon">−</text>
+										</view>
+										<text class="stepper-num">{{ getSpecGoodsCount(goods) }}</text>
+										<view class="btn-plus" :class="{ disabled: !isBusinessOpen }" @click.stop="isBusinessOpen ? openSpec(goods, true) : showClosedToast()">
+											<text class="plus-icon">+</text>
+										</view>
+									</template>
+									<!-- 未选过，显示选规格按钮 -->
+									<template v-else>
+										<view class="btn-select-spec" :class="{ disabled: !isBusinessOpen }" @click.stop="isBusinessOpen ? openSpec(goods, false) : showClosedToast()">
+											选规格
+										</view>
+									</template>
+								</view>
+								<!-- 单规格显示加减按钮 -->
+								<view class="stepper" v-else>
+									<view class="btn-minus" v-if="getGoodsCount(goods) > 0" @click.stop="isBusinessOpen ? decreaseGoods(goods) : showClosedToast()">
+										<text class="minus-icon">−</text>
+									</view>
+									<text class="stepper-num" v-if="getGoodsCount(goods) > 0">
+										{{ getGoodsCount(goods) }}
+									</text>
+									<view class="btn-plus" :class="{ disabled: !isBusinessOpen }" @click.stop="isBusinessOpen ? increaseGoods(goods) : showClosedToast()">
+										<text class="plus-icon">+</text>
+									</view>
+								</view>
  								</view>
  							</view>
  						</view>
@@ -148,8 +162,8 @@
  			</view>
  		</view>
  
- 		<!-- 底部结算栏 -->
- 		<view class="submit-bar" :class="{ 'cart-open': showCart }">
+		<!-- 底部结算栏 -->
+		<view class="submit-bar" :class="{ 'cart-open': showCart, 'store-closed': !isBusinessOpen }">
  			<!-- 购物车展开时的遮罩 -->
  			<view class="cart-overlay" v-if="showCart" @click="toggleCart"></view>
  			
@@ -186,26 +200,26 @@
  				</scroll-view>
  			</view>
  
- 			<!-- 结算栏主体 -->
- 			<view class="submit-content" @click="toggleCart">
- 				<view class="cart-icon" :class="{ active: cartCount > 0 }">
- 					<image class="cart-img" src="/static/img/cart.png" />
- 					<view class="cart-badge" v-if="cartCount > 0">{{ cartCount }}</view>
- 				</view>
- 				<view class="price-info">
- 					<view class="price-row" v-if="cartCount > 0">
- 						<text class="total">¥{{ cartPrice }}</text>
- 						<text class="delivery-fee">配送费¥{{ storeInfo.delivery_fee || 5 }}</text>
- 					</view>
- 					<view class="price-row" v-else>
- 						<text class="empty-tip">未选购商品</text>
- 					</view>
- 				</view>
- 			</view>
- 			<button class="submit-btn" :class="{ disabled: !canSubmit }" :disabled="!canSubmit" @click.stop="submitOrder">
- 				{{ submitBtnText }}
- 			</button>
- 		</view>
+			<!-- 结算栏主体 -->
+			<view class="submit-content" @click="isBusinessOpen ? toggleCart() : showClosedToast()">
+				<view class="cart-icon" :class="{ active: cartCount > 0, disabled: !isBusinessOpen }">
+					<image class="cart-img" src="/static/img/cart.png" />
+					<view class="cart-badge" v-if="cartCount > 0">{{ cartCount }}</view>
+				</view>
+				<view class="price-info">
+					<view class="price-row" v-if="cartCount > 0">
+						<text class="total" :class="{ disabled: !isBusinessOpen }">¥{{ cartPrice }}</text>
+						<text class="delivery-fee">配送费¥{{ storeInfo.delivery_fee || 5 }}</text>
+					</view>
+					<view class="price-row" v-else>
+						<text class="empty-tip" :class="{ disabled: !isBusinessOpen }">未选购商品</text>
+					</view>
+				</view>
+			</view>
+			<button class="submit-btn" :class="{ disabled: !canSubmit || !isBusinessOpen, 'store-closed-btn': !isBusinessOpen }" :disabled="!canSubmit || !isBusinessOpen" @click.stop="submitOrder">
+				{{ submitBtnText }}
+			</button>
+		</view>
  
  		<!-- 规格选择弹窗 -->
  		<view class="spec-popup" v-if="showSpecPopup">
@@ -289,13 +303,42 @@
  			canSubmit() {
  				return this.cartCount > 0 && parseFloat(this.cartPrice) >= (this.storeInfo.min_order_amount || 30)
  			},
- 			submitBtnText() {
- 				if (this.cartCount === 0) return '去结算'
- 				if (parseFloat(this.cartPrice) < (this.storeInfo.min_order_amount || 30)) {
- 					return `差¥${((this.storeInfo.min_order_amount || 30) - parseFloat(this.cartPrice)).toFixed(1)}起送`
- 				}
- 				return '去结算'
- 			},
+			submitBtnText() {
+				// 门店未营业时
+				if (!this.isBusinessOpen) {
+					return this.storeInfo.status == 0 || this.storeInfo.status == '0' ? '门店已打烊' : '门店休息中'
+				}
+				if (this.cartCount === 0) return '去结算'
+				if (parseFloat(this.cartPrice) < (this.storeInfo.min_order_amount || 30)) {
+					return `差¥${((this.storeInfo.min_order_amount || 30) - parseFloat(this.cartPrice)).toFixed(1)}起送`
+				}
+				return '去结算'
+			},
+			// 门店是否营业中
+			isBusinessOpen() {
+				const status = this.storeInfo.status
+				// 如果有明确的状态字段（支持字符串和数字）
+				if (status === 1 || status === '1') return true
+				if (status === 0 || status === '0' || status === 2 || status === '2') return false
+				// 否则根据营业时间判断
+				return this.checkBusinessTime()
+			},
+			// 门店状态文本
+			storeStatusText() {
+				const status = this.storeInfo.status
+				if (status === 0 || status === '0') return '已打烊'
+				if (status === 2 || status === '2') return '休息中'
+				if (!this.checkBusinessTime()) return '已打烊'
+				return ''
+			},
+			// 门店状态样式类
+			storeStatusClass() {
+				const status = this.storeInfo.status
+				if (status === 0 || status === '0' || status === 2 || status === '2' || !this.checkBusinessTime()) {
+					return 'closed'
+				}
+				return 'open'
+			},
  			selectedSpecText() {
  				if (!this.attrGroupList.length) return ''
  				const texts = []
@@ -329,8 +372,57 @@
  			setTimeout(() => this.calcSectionTops(), 100)
  		},
  
- 		methods: {
- 			calcNoticeDuration() {
+		methods: {
+			// 返回上一页
+			goBack() {
+				uni.navigateBack({
+					success: () => {},
+					fail: () => {
+						// 如果返回失败，跳转到首页
+						uni.switchTab({ url: '/pages/home/home' });
+					}
+				});
+			},
+
+			// 显示门店休息中提示
+			showClosedToast() {
+				uni.showToast({
+					title: `门店${this.storeInfo.status == 0 || this.storeInfo.status == '0' ? '已打烊' : '休息中'}`,
+					icon: 'none',
+					duration: 2000
+				});
+			},
+
+			// 检查当前是否在营业时间内
+			checkBusinessTime() {
+				if (!this.storeInfo.business_hours) return true
+				
+				const now = new Date()
+				const currentHour = now.getHours()
+				const currentMinute = now.getMinutes()
+				const currentTime = currentHour * 60 + currentMinute
+				
+				// 解析营业时间，格式如 "09:00-22:00"
+				const hours = this.storeInfo.business_hours.split('-')
+				if (hours.length !== 2) return true
+				
+				const parseTime = (timeStr) => {
+					const [h, m] = timeStr.split(':').map(Number)
+					return h * 60 + m
+				}
+				
+				const openTime = parseTime(hours[0])
+				const closeTime = parseTime(hours[1])
+				
+				// 处理跨天的情况（如 22:00-02:00）
+				if (closeTime < openTime) {
+					return currentTime >= openTime || currentTime <= closeTime
+				}
+				
+				return currentTime >= openTime && currentTime <= closeTime
+			},
+			
+			calcNoticeDuration() {
  				const len = this.storeInfo.notice?.length || 0
  				this.needMarquee = len > 35
  				this.noticeDuration = Math.max(8, len / 5)
@@ -654,21 +746,58 @@
  				display: flex;
  				flex-direction: column;
  				justify-content: center;
- 				.store-name {
- 					font-size: 32rpx;
- 					font-weight: bold;
- 					color: #333;
- 					margin-bottom: 10rpx;
- 				}
- 				.store-simple {
- 					display: flex;
- 					align-items: center;
- 					gap: 20rpx;
- 					.sales,.time {
- 						font-size: 24rpx;
- 						color: #666;
- 					}
- 				}
+				.store-name {
+					font-size: 32rpx;
+					font-weight: bold;
+					color: #333;
+					margin-bottom: 10rpx;
+					display: flex;
+					align-items: center;
+					gap: 12rpx;
+					flex-wrap: wrap;
+					.status-tag {
+						font-size: 20rpx;
+						padding: 4rpx 12rpx;
+						border-radius: 8rpx;
+						font-weight: normal;
+						&.open {
+							background: #e6f7ed;
+							color: #52c41a;
+						}
+						&.closed {
+							background: #f5f5f5;
+							color: #999;
+						}
+					}
+				}
+				.store-simple {
+					display: flex;
+					align-items: center;
+					gap: 20rpx;
+					.sales,.time {
+						font-size: 24rpx;
+						color: #666;
+					}
+				}
+				.business-time {
+					display: flex;
+					align-items: center;
+					margin-top: 8rpx;
+					font-size: 22rpx;
+					.time-label {
+						color: #999;
+					}
+					.time-value {
+						color: #666;
+						&.closed {
+							color: #ff4d4f;
+							text-decoration: line-through;
+						}
+					}
+					.status-hint {
+						color: #ff4d4f;
+					}
+				}
  			}
  		}
  	}
@@ -839,16 +968,21 @@
  							display: flex;
  							align-items: center;
  							// 选规格按钮
- 							.btn-select-spec {
- 								padding: 8rpx 20rpx;
- 								background: #ff6b35;
- 								color: #fff;
- 								font-size: 24rpx;
- 								font-weight: bold;
- 								border-radius: 8rpx;
- 								min-width: 80rpx;
- 								text-align: center;
- 							}
+							.btn-select-spec {
+								padding: 8rpx 20rpx;
+								background: #ff6b35;
+								color: #fff;
+								font-size: 24rpx;
+								font-weight: bold;
+								border-radius: 8rpx;
+								min-width: 80rpx;
+								text-align: center;
+								
+								&.disabled {
+									background: #ccc;
+									pointer-events: none;
+								}
+							}
  							.btn-minus {
  								width: 44rpx;
  								height: 44rpx;
@@ -868,19 +1002,24 @@
  								font-size: 28rpx;
  								font-weight: bold;
  							}
- 							.btn-plus {
- 								width: 44rpx;
- 								height: 44rpx;
- 								background: $primary;
- 								border-radius: 50%;
- 								display: flex;
- 								align-items: center;
- 								justify-content: center;
- 								.plus-icon {
- 									font-size: 28rpx;
- 									color: #fff;
- 								}
- 							}
+							.btn-plus {
+								width: 44rpx;
+								height: 44rpx;
+								background: $primary;
+								border-radius: 50%;
+								display: flex;
+								align-items: center;
+								justify-content: center;
+								
+								&.disabled {
+									background: #ccc;
+								}
+								
+								.plus-icon {
+									font-size: 28rpx;
+									color: #fff;
+								}
+							}
  						}
  					}
  				}
@@ -932,13 +1071,34 @@
  		100% { transform: translateX(-50%); }
  	}
  
- 	/* 底部结算栏 */
- 	.submit-bar {
- 		position: fixed;
- 		left: 0;
- 		right: 0;
- 		bottom: 0;
- 		height: 100rpx;
+	/* 门店休息提示条（淘宝闪购风格） */
+	.store-closed-notice {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 16rpx 30rpx;
+		background: #fff7f0;
+		border-bottom: 1rpx solid #ffe4d1;
+		
+		.notice-text {
+			margin-left: 12rpx;
+			font-size: 26rpx;
+			color: #ff6000;
+		}
+	}
+
+	/* 门店休息遮罩（已废弃，保留兼容） */
+	.store-closed-mask {
+		display: none;
+	}
+
+	/* 底部结算栏 */
+	.submit-bar {
+		position: fixed;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		height: 100rpx;
  		background: #fff;
  		border-top: 1rpx solid #e5e5e5;
  		display: flex;
@@ -1096,11 +1256,15 @@
  				opacity: 0.4;
  			}
  			
- 			&.active .cart-img {
- 				opacity: 1;
- 			}
- 			
- 			.cart-badge {
+			&.active .cart-img {
+				opacity: 1;
+			}
+			
+			&.disabled .cart-img {
+				opacity: 0.2;
+			}
+			
+			.cart-badge {
  				position: absolute;
  				top: -8rpx;
  				right: -8rpx;
@@ -1119,30 +1283,38 @@
  		.price-info {
  			flex: 1;
  			
- 			.price-row {
- 				display: flex;
- 				align-items: baseline;
- 				gap: 16rpx;
- 				
- 				.total {
- 					font-size: 40rpx;
- 					font-weight: bold;
- 					color: #333;
- 				}
- 				
- 				.delivery-fee {
- 					font-size: 24rpx;
- 					color: #999;
- 				}
- 				
- 				.empty-tip {
- 					font-size: 28rpx;
- 					color: #999;
- 				}
- 			}
- 		}
- 		
- 		.submit-btn {
+			.price-row {
+				display: flex;
+				align-items: baseline;
+				gap: 16rpx;
+				
+				.delivery-fee {
+					font-size: 24rpx;
+					color: #999;
+				}
+				
+				.empty-tip {
+					font-size: 28rpx;
+					color: #999;
+					
+					&.disabled {
+						color: #ccc;
+					}
+				}
+				
+				.total {
+					font-size: 40rpx;
+					font-weight: bold;
+					color: #333;
+					
+					&.disabled {
+						color: #ccc;
+					}
+				}
+			}
+		}
+		
+		.submit-btn {
  			min-width: 180rpx;
  			height: 72rpx;
  			background: $primary;
@@ -1152,13 +1324,29 @@
  			border-radius: 10rpx;
  			border: none;
  			
- 			&.disabled {
- 				background: #ccc;
- 			}
- 		}
- 	}
- 
- 	/* 规格弹窗 */
+		&.disabled {
+			background: #ccc;
+		}
+		
+		&.store-closed-btn {
+			background: #999 !important;
+			color: #fff !important;
+		}
+	}
+		
+		// 门店关闭时底部栏变灰
+		&.store-closed {
+			background: #f5f5f5;
+			
+			.cart-icon {
+				.cart-img {
+					opacity: 0.2;
+				}
+			}
+		}
+	}
+
+	/* 规格弹窗 */
  	.spec-popup {
  		position: fixed;
  		z-index: 9999;

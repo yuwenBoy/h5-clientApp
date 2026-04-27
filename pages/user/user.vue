@@ -161,7 +161,8 @@
 					nickname: '',
 					avatar: '',
 					phone: ''
-				}
+				},
+				clicking: false // 防止重复点击
 			}
 		},
 		onLoad() {
@@ -214,11 +215,19 @@
 					path: '/pages/user/address/list'
 				})
 			},
-			toOrder(e) {
-				this.$Router.push({
-					path: '/pages/order/list'
-				})
-			},
+		toOrder(e) {
+			// 防止重复点击
+			if (this.clicking) return
+			this.clicking = true
+			
+			uni.navigateTo({
+				url: '/pages/order/list'
+			})
+			
+			setTimeout(() => {
+				this.clicking = false
+			}, 500)
+		},
 		toLogin(e) {
 			// 从当前页面进入登录，登录成功后返回当前页面
 			uni.navigateTo({
