@@ -18,7 +18,7 @@
 				<view class="avatar-section" @click="handleUserClick">
 					<view class="avatar-wrapper">
 						<image 
-							:src="isLogin && userInfo.avatar ? userInfo.avatar : '/static/img/default-avatar.png'" 
+							:src="isLogin && userInfo.avatar ? userInfo.avatar : defaultAvatar" 
 							class="avatar"
 							mode="aspectFill"
 						></image>
@@ -60,37 +60,29 @@
 			</view>
 		</view>
 		
-		<!-- 我的订单快捷入口 -->
+			<!-- 我的订单快捷入口 -->
 		<view class="section-card">
 			<view class="section-header">
 				<text class="section-title">我的订单</text>
-				<view class="more-link" @click="toOrder">
+				<view class="more-link" @click="toOrder(0)">
 					<text class="more-text">查看全部</text>
 					<uni-icons :size="14" color="#999" type="arrowright" />
 				</view>
 			</view>
 			<view class="order-grid">
-				<view class="order-item" @click="toOrder">
+				<view class="order-item" @click="toOrder(1)">
 					<view class="order-icon pending">
-						<text class="badge">3</text>
+						<text class="badge" v-if="orderCount.pending > 0">{{ orderCount.pending }}</text>
 					</view>
 					<text class="order-label">待付款</text>
 				</view>
-				<view class="order-item" @click="toOrder">
-					<view class="order-icon paid"></view>
-					<text class="order-label">待发货</text>
-				</view>
-				<view class="order-item" @click="toOrder">
-					<view class="order-icon shipping"></view>
-					<text class="order-label">待收货</text>
-				</view>
-				<view class="order-item" @click="toOrder">
+				<view class="order-item" @click="toOrder(3)">
 					<view class="order-icon completed"></view>
 					<text class="order-label">已完成</text>
 				</view>
-				<view class="order-item" @click="toOrder">
+				<view class="order-item" @click="toOrder(4)">
 					<view class="order-icon refund"></view>
-					<text class="order-label">退款/售后</text>
+					<text class="order-label">售后</text>
 				</view>
 			</view>
 		</view>
@@ -162,7 +154,13 @@
 					avatar: '',
 					phone: ''
 				},
-				clicking: false // 防止重复点击
+				defaultAvatar: 'https://img.yzcdn.cn/vant/cat.jpeg',
+				clicking: false, // 防止重复点击
+				orderCount: {
+					pending: 0,
+					completed: 0,
+					afterSale: 0
+				}
 			}
 		},
 		onLoad() {
@@ -215,13 +213,13 @@
 					path: '/pages/user/address/list'
 				})
 			},
-		toOrder(e) {
+		toOrder(tabIndex = 0) {
 			// 防止重复点击
 			if (this.clicking) return
 			this.clicking = true
 			
 			uni.navigateTo({
-				url: '/pages/order/list'
+				url: `/pages/order/list?tab=${tabIndex}`
 			})
 			
 			setTimeout(() => {

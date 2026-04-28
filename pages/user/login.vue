@@ -142,6 +142,17 @@ export default {
         if (res.code === 0) {
           this.$utils.toast('验证码已发送');
           this.startCountDown();
+          
+          // 弹窗显示返回的验证码（测试环境使用）
+          const verifyCode = res.result?.data?.code;
+          if (verifyCode) {
+            uni.showModal({
+              title: '验证码',
+              content: `您的验证码是：${verifyCode}`,
+              showCancel: false,
+              confirmText: '知道了'
+            });
+          }
         } else {
           this.$utils.toast(res.message || '发送失败');
         }
@@ -186,22 +197,9 @@ export default {
           setTimeout(() => {
             // 如果有指定返回页面，则跳转到指定页面
             if (this.redirectUrl) {
-              if (this.redirectUrl.startsWith('/pages/')) {
-                // 使用 navigateBack 返回上一页
-                uni.navigateBack({
-                  delta: 1,
-                  success: () => {
-                    // 返回后刷新页面状态
-                    const pages = getCurrentPages()
-                    const prevPage = pages[pages.length - 1]
-                    if (prevPage && prevPage.$vm && prevPage.$vm.checkLoginStatus) {
-                      prevPage.$vm.checkLoginStatus()
-                    }
-                  }
-                })
-              } else {
-                uni.redirectTo({ url: this.redirectUrl })
-              }
+              const decodedUrl = decodeURIComponent(this.redirectUrl)
+              // 使用 redirectTo 关闭登录页后跳转到目标页
+              uni.redirectTo({ url: decodedUrl })
             } else {
               // 默认跳转到首页
               uni.switchTab({ url: '/pages/home/home' });
@@ -386,19 +384,26 @@ export default {
     }
     
     .code-input {
-      flex: 0 0 200rpx;
+      flex: 1;
+      min-width: 140rpx;
     }
     
     .code-btn {
-      padding: 16rpx 24rpx;
+      padding: 16rpx 20rpx;
       background: linear-gradient(135deg, #FF6B35 0%, #F7931E 100%);
       border-radius: 12rpx;
-      margin-left: 76rpx;
+      margin-left: 16rpx;
+      flex-shrink: 0;
+      min-width: 140rpx;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       
       &-text {
         font-size: 24rpx;
         color: #fff;
         font-weight: 500;
+        white-space: nowrap;
       }
       
       &-disabled {

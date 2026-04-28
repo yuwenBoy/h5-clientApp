@@ -1,43 +1,47 @@
- <template>
+<template>
  	<view class="store-page">
- 		<!-- 1. 门店头部 -->
- 		<view class="store-header">
- 			<view class="header-bg"></view>
- 			<view class="store-info">
- 				<image class="store-logo" :src="storeInfo.logo || defaultLogo" />
- 				<view class="store-meta">
-					<view class="store-name">
-						{{ storeInfo.name }}
-						<view class="status-tag" :class="storeStatusClass" v-if="storeStatusText">{{ storeStatusText }}</view>
-					</view>
-					<view class="store-simple">
-						<text class="sales">月售{{ storeInfo.monthly_sales || 999 }}</text>
-						<text class="time">{{ storeInfo.delivery_time || 30 }}分钟</text>
-					</view>
-					<view class="business-time" v-if="storeInfo.business_hours">
-						<text class="time-label">营业时间：</text>
-						<text class="time-value" :class="{ 'closed': !isBusinessOpen }">{{ storeInfo.business_hours }}</text>
-						<text class="status-hint" v-if="!isBusinessOpen">（{{ storeStatusText }}）</text>
-					</view>
+ 		<!-- 骨架屏 -->
+ 		<store-detail-skeleton v-if="pageLoading" />
+ 		
+ 		<template v-else>
+ 			<!-- 1. 门店头部 -->
+ 			<view class="store-header">
+ 				<view class="header-bg"></view>
+ 				<view class="store-info">
+ 					<image class="store-logo" :src="storeInfo.logo || defaultLogo" />
+ 					<view class="store-meta">
+						<view class="store-name">
+							{{ storeInfo.name }}
+							<view class="status-tag" :class="storeStatusClass" v-if="storeStatusText">{{ storeStatusText }}</view>
+						</view>
+						<view class="store-simple">
+							<text class="sales">月售{{ storeInfo.monthly_sales || 999 }}</text>
+							<text class="time">{{ storeInfo.delivery_time || 30 }}分钟</text>
+						</view>
+						<view class="business-time" v-if="storeInfo.business_hours">
+							<text class="time-label">营业时间：</text>
+							<text class="time-value" :class="{ 'closed': !isBusinessOpen }">{{ storeInfo.business_hours }}</text>
+							<text class="status-hint" v-if="!isBusinessOpen">（{{ storeStatusText }}）</text>
+						</view>
+ 					</view>
  				</view>
  			</view>
- 		</view>
  
-		<!-- 2. Tab切换 -->
-		<view class="tab-bar">
-			<view class="tab-item" :class="{ active: activeTab === 'menu' }" @click="activeTab = 'menu'">
-				点餐
-			</view>
-			<view class="tab-item" :class="{ active: activeTab === 'merchant' }" @click="activeTab = 'merchant'">
-				商家
-			</view>
-		</view>
+ 			<!-- 2. Tab切换 -->
+ 			<view class="tab-bar">
+ 				<view class="tab-item" :class="{ active: activeTab === 'menu' }" @click="activeTab = 'menu'">
+ 					点餐
+ 				</view>
+ 				<view class="tab-item" :class="{ active: activeTab === 'merchant' }" @click="activeTab = 'merchant'">
+ 					商家
+ 				</view>
+ 			</view>
 
-		<!-- 门店休息提示条（淘宝闪购风格） -->
-		<view class="store-closed-notice" v-if="!isBusinessOpen">
-			<uni-icons type="info-filled" size="14" color="#ff4d4f" />
-			<text class="notice-text">门店{{ storeInfo.status == 0 || storeInfo.status == '0' ? '已打烊' : '休息中' }}，营业时间 {{ storeInfo.business_hours || '09:00-22:00' }}</text>
-		</view>
+			<!-- 门店休息提示条（淘宝闪购风格） -->
+			<view class="store-closed-notice" v-if="!isBusinessOpen">
+				<uni-icons type="info-filled" size="14" color="#ff4d4f" />
+				<text class="notice-text">门店{{ storeInfo.status == 0 || storeInfo.status == '0' ? '已打烊' : '休息中' }}，营业时间 {{ storeInfo.business_hours || '09:00-22:00' }}</text>
+			</view>
 
 		<!-- 3. 点餐Tab -->
  		<view class="tab-content" v-show="activeTab === 'menu'">
@@ -162,8 +166,8 @@
  			</view>
  		</view>
  
-		<!-- 底部结算栏 -->
-		<view class="submit-bar" :class="{ 'cart-open': showCart, 'store-closed': !isBusinessOpen }">
+			<!-- 底部结算栏 -->
+			<view class="submit-bar" :class="{ 'cart-open': showCart, 'store-closed': !isBusinessOpen }">
  			<!-- 购物车展开时的遮罩 -->
  			<view class="cart-overlay" v-if="showCart" @click="toggleCart"></view>
  			
@@ -262,21 +266,28 @@
  				</view>
  			</view>
  		</view>
+ 			</template>
+ 		</view>
  	</view>
  </template>
  
  <script>
+	import StoreDetailSkeleton from "@/components/skeleton-screen/store-detail-skeleton.vue";
  	export default {
+		components: {
+			StoreDetailSkeleton
+		},
  		data() {
  			return {
+				pageLoading: true,
  				activeTab: 'menu',
  				activeCat: 0,
  				sidebarScrollTop: 0,
  				goodsScrollTop: 0,
  				isClicking: false,
  				sectionTops: [],
-			showCart: false,
-			cartList: uni.getStorageSync('cartList') || [],
+				showCart: false,
+				cartList: uni.getStorageSync('cartList') || [],
  				defaultLogo: 'https://picsum.photos/100/100?random=10',
  				storeId: null,
  				storeInfo: {},
@@ -355,12 +366,17 @@
  
     mounted(){
 			this.storeId = this.$Route.query.id
-			if (this.storeId) this.getStoreDetail(this.storeId)
+			if (this.storeId) {
+				this.getStoreDetail(this.storeId)
+			}
 			this.calcNoticeDuration()
-		},
-		onLoad(option) {
-			if (this.storeId) this.getStoreDetail(this.storeId)
-			this.calcNoticeDuration()
+			
+			// 5秒后自动关闭骨架屏（防止接口异常一直显示）
+			setTimeout(() => {
+				if (this.pageLoading) {
+					this.pageLoading = false;
+				}
+			}, 5000);
 		},
 
 		onShow() {
@@ -695,17 +711,34 @@
 					url: `/pages/order/confirm?storeId=${this.storeInfo.id}&total=${this.cartPrice}`
 				})
 			},
+			
+			// 门店打烊提示
+			showClosedToast() {
+				const statusText = this.storeInfo.status == 0 || this.storeInfo.status == '0' ? '已打烊' : '休息中'
+				uni.showToast({
+					title: `门店${statusText}，暂无法下单`,
+					icon: 'none',
+					duration: 2000
+				})
+			},
  
  			callPhone(phone) {
  				uni.makePhoneCall({ phoneNumber: phone })
  			},
  
  			async getStoreDetail(storeId) {
- 				const { result } = await this.$request.post(this.$apis.index.storeDetail, { storeId })
- 				this.storeInfo = { ...this.storeInfo, ...result.storeInfo }
- 				this.categories = result.categories || []
- 				this.calcNoticeDuration()
- 				setTimeout(() => this.calcSectionTops(), 100)
+				try {
+ 					const { result } = await this.$request.post(this.$apis.index.storeDetail, { storeId })
+ 					this.storeInfo = { ...this.storeInfo, ...result.storeInfo }
+ 					this.categories = result.categories || []
+ 					this.calcNoticeDuration()
+ 					setTimeout(() => this.calcSectionTops(), 100)
+				} catch (e) {
+					console.error('获取门店详情失败', e)
+				} finally {
+					// 数据加载完成后关闭骨架屏
+					this.pageLoading = false
+				}
  			},
  		}
  	}

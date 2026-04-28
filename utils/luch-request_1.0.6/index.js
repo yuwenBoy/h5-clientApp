@@ -15,10 +15,10 @@ const FE_URL = {
 	'zhouya': 'pre.h5.fuduoka.com/zhouya',
 }
 const API_URL = {
-	'develop': '//192.168.124.25:9000/basic-api', // api.front.wujie.develop.fuduoka.com:17004
+	'develop': '//192.168.4.63:9000/basic-api', // api.front.wujie.develop.fuduoka.com:17004
 }
 // 本地
-if (location.hostname === '127.0.0.1' || location.hostname === '192.168.124.25') {
+if (location.hostname === '127.0.0.1' || location.hostname === '192.168.4.63') {
 	baseUrl = 'http://' + API_URL[NODE_ENV]
 } else {
 	// 非本地

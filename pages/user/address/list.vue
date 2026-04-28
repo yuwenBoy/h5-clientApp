@@ -123,9 +123,16 @@ export default {
   },
   onLoad(options) {
     this.fromOrder = options.from === 'order'
+    // 检查登录状态
+    if (!this.checkLogin()) return
+    this.getAddressList();
   },
   onShow() {
-    this.getAddressList();
+    // 只在已登录时刷新列表
+    const token = this.$utils.getStorage('token')
+    if (token && token !== '{}') {
+      this.getAddressList();
+    }
   },
   methods: {
     goBack() {
@@ -311,6 +318,18 @@ export default {
           }
         }
       });
+    },
+    
+    // 检查登录状态
+    checkLogin() {
+      const token = this.$utils.getStorage('token')
+      if (!token || token === '{}') {
+        uni.navigateTo({
+          url: '/pages/user/login?redirect=' + encodeURIComponent('/pages/user/address/list')
+        })
+        return false
+      }
+      return true
     }
   }
 };

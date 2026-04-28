@@ -194,9 +194,10 @@ export default {
       activeTab: 0,
       tabList: [
         { name: '全部', status: null, badge: 0 },
-        { name: '待支付', status: 0, badge: 0 },
+        { name: '待付款', status: 0, badge: 0 },
         { name: '进行中', status: 'processing', badge: 0 },
-        { name: '已完成', status: 5, badge: 0 }
+        { name: '已完成', status: 5, badge: 0 },
+        { name: '售后', status: 'aftersale', badge: 0 }
       ],
       orderList: [],
       storeLogo: '/static/img/store-default.png',
@@ -210,7 +211,17 @@ export default {
     }
   },
   
-  onLoad() {
+  onLoad(options) {
+    // 检查登录状态
+    if (!this.checkLogin()) return
+    
+    // 如果有传入tab参数，切换到对应tab
+    if (options.tab !== undefined) {
+      const tabIndex = parseInt(options.tab)
+      if (tabIndex >= 0 && tabIndex < this.tabList.length) {
+        this.activeTab = tabIndex
+      }
+    }
     this.refreshList()
   },
   
@@ -520,6 +531,18 @@ export default {
     // 去点餐
     goStore() {
       uni.switchTab({ url: '/pages/home/home' })
+    },
+    
+    // 检查登录状态
+    checkLogin() {
+      const token = this.$utils.getStorage('token')
+      if (!token || token === '{}') {
+        uni.navigateTo({
+          url: '/pages/user/login?redirect=' + encodeURIComponent('/pages/order/list')
+        })
+        return false
+      }
+      return true
     }
   }
 }

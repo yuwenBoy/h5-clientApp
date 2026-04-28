@@ -1,91 +1,97 @@
  <template>
 	<view class="home-page">
-		<!-- 吸顶搜索框 -->
-		<view class="search-bar-sticky">
-			<view class="search-box" @click="toSearchPage">
-				<uni-icons type="search" size="18" color="#999" />
-				<text class="placeholder">搜索闪购商品</text>
-			</view>
-		</view>
-
-		<!-- 定位信息 → 点击直接地图选点 -->
-		<view class="location-bar" @click="chooseLocation">
-			<uni-icons type="location-filled" size="16" color="#ff6000" />
-			<text class="location-text">{{ currentLocation || '定位中…' }}</text>
-			<uni-icons type="right" size="14" color="#999" />
-		</view>
-
-		<!-- 轮播图 -->
-		<swiper class="banner-swiper" :indicator-dots="true" :autoplay="true" :interval="3000">
-			<swiper-item v-for="(item, index) in bannerList" :key="index">
-				<image class="banner-img" :src="item.image" mode="aspectFill" />
-			</swiper-item>
-		</swiper>
-
-		<!-- 分类导航 -->
-		<scroll-view class="category-scroll" scroll-x="true" scroll-with-animation>
-			<view class="category-nav">
-				<view class="category-item" v-for="(item, index) in categoryList" :key="index" @click="categoryClick(item)">
-					<image class="category-icon" :src="item.icon" mode="aspectFill" />
-					<text class="category-name">{{ item.name }}</text>
+		<!-- 骨架屏 -->
+		<home-skeleton v-if="pageLoading" />
+		
+		<template v-else>
+			<!-- 吸顶搜索框 -->
+			<view class="search-bar-sticky">
+				<view class="search-box" @click="toSearchPage">
+					<uni-icons type="search" size="18" color="#999" />
+					<text class="placeholder">搜索闪购商品</text>
 				</view>
 			</view>
-		</scroll-view>
-		<!-- 推荐商家 -->
-		<view class="store-section">
-			<view class="section-title">附近商家</view>
-			<view class="store-list-wrapper">
-				<mescroll-uni ref="mescrollRef" @init="mescrollInit" @down="downCallback" @up="upCallback" :top="'auto'"
-					:height="'auto'" :fixed="false">
-					<view class="store-list" v-if="storeList.length > 0">
-						<view class="store-item" v-for="(store, index) in storeList" :key="store.id" @click="toStoreDetail(store)">
-							<image class="store-image"
-						:src="(store.avatarImg ? $utils.processImageUrl(store.avatarImg) : $utils.processImageUrl('http://image.jxxqz.com:3001/fc57d5031095495fae039977ec738d01.jpeg'))"
-						mode="aspectFill" />
-							<view class="store-info">
-								<view class="store-header">
-									<text class="store-name">{{ store.storeName }}</text>
-									<text class="store-distance">{{ store.distanceText || '未知距离' }}</text>
-								</view>
-								<view class="store-status">
-									<view class="store-status-rest" v-if="store.business_status==='休息中'">
-										<text class="text">休息中</text>
-										<text class="time">{{store.next_open_time}}</text>
+
+			<!-- 定位信息 → 点击直接地图选点 -->
+			<view class="location-bar" @click="chooseLocation">
+				<uni-icons type="location-filled" size="16" color="#ff6000" />
+				<text class="location-text">{{ currentLocation || '定位中…' }}</text>
+				<uni-icons type="right" size="14" color="#999" />
+			</view>
+
+			<!-- 轮播图 -->
+			<swiper class="banner-swiper" :indicator-dots="true" :autoplay="true" :interval="3000">
+				<swiper-item v-for="(item, index) in bannerList" :key="index">
+					<image class="banner-img" :src="item.image" mode="aspectFill" />
+				</swiper-item>
+			</swiper>
+
+			<!-- 分类导航 -->
+			<scroll-view class="category-scroll" scroll-x="true" scroll-with-animation>
+				<view class="category-nav">
+					<view class="category-item" v-for="(item, index) in categoryList" :key="index" @click="categoryClick(item)">
+						<image class="category-icon" :src="item.icon" mode="aspectFill" />
+						<text class="category-name">{{ item.name }}</text>
+					</view>
+				</view>
+			</scroll-view>
+			<!-- 推荐商家 -->
+			<view class="store-section">
+				<view class="section-title">附近商家</view>
+				<view class="store-list-wrapper">
+					<mescroll-uni ref="mescrollRef" @init="mescrollInit" @down="downCallback" @up="upCallback" :top="'auto'"
+						:height="'auto'" :fixed="false">
+						<view class="store-list" v-if="storeList.length > 0">
+							<view class="store-item" v-for="(store, index) in storeList" :key="store.id" @click="toStoreDetail(store)">
+								<image class="store-image"
+							:src="(store.avatarImg ? $utils.processImageUrl(store.avatarImg) : $utils.processImageUrl('http://image.jxxqz.com:3001/fc57d5031095495fae039977ec738d01.jpeg'))"
+							mode="aspectFill" />
+								<view class="store-info">
+									<view class="store-header">
+										<text class="store-name">{{ store.storeName }}</text>
+										<text class="store-distance">{{ store.distanceText || '未知距离' }}</text>
 									</view>
-									<view class="store-status-open" v-else-if="store.business_status==='营业中'">
-										<text class="text">营业中</text>
-										<text class="time">{{store.today_hours}}</text>
+									<view class="store-status">
+										<view class="store-status-rest" v-if="store.business_status==='休息中'">
+											<text class="text">休息中</text>
+											<text class="time">{{store.next_open_time}}</text>
+										</view>
+										<view class="store-status-open" v-else-if="store.business_status==='营业中'">
+											<text class="text">营业中</text>
+											<text class="time">{{store.today_hours}}</text>
+										</view>
+										<view class="store-status-rest" v-else-if="store.business_status==='已打烊'">
+											<text class="text">已打烊</text>
+											<text class="time">{{store.next_open_time}}</text>
+										</view>
+										<view class="store-status-none" v-else>
+											<text class="text">{{store.business_status}}</text>
+										</view>
 									</view>
-									<view class="store-status-rest" v-else-if="store.business_status==='已打烊'">
-										<text class="text">已打烊</text>
-										<text class="time">{{store.next_open_time}}</text>
+									<view class="store-meta">
+										<text class="rating">⭐ {{ store.rating || 5.0 }}</text>
+										<text class="sales">月售{{ store.monthly_sales || 88 }}</text>
 									</view>
-									<view class="store-status-none" v-else>
-										<text class="text">{{store.business_status}}</text>
+									<view class="store-delivery">
+										<text class="delivery-fee">配送 ¥{{ store.delivery_fee || 0 }}</text>
+										<text class="min-order">起送 ¥{{ store.min_order_amount || 20 }}</text>
 									</view>
-								</view>
-								<view class="store-meta">
-									<text class="rating">⭐ {{ store.rating || 5.0 }}</text>
-									<text class="sales">月售{{ store.monthly_sales || 88 }}</text>
-								</view>
-								<view class="store-delivery">
-									<text class="delivery-fee">配送 ¥{{ store.delivery_fee || 0 }}</text>
-									<text class="min-order">起送 ¥{{ store.min_order_amount || 20 }}</text>
 								</view>
 							</view>
 						</view>
-					</view>
-					<view class="empty-box" v-if="storeList.length === 0 && isLoaded">
-						<image class="empty-icon" src="/static/images/empty.png" />
-						<text class="empty-text">暂无优质商家</text>
-					</view>
-				</mescroll-uni>
+						<view class="empty-box" v-if="storeList.length === 0 && isLoaded">
+							<image class="empty-icon" src="/static/images/empty.png" />
+							<text class="empty-text">暂无优质商家</text>
+						</view>
+					</mescroll-uni>
+				</view>
 			</view>
-		</view>
+		</template>
 	</view>
 </template>
  <script>
   import MescrollMixin from "@/components/mescroll-uni/mescroll-mixins.js";
+  import HomeSkeleton from "@/components/skeleton-screen/home-skeleton.vue";
   // 高德 Web服务 Key
   const AMAP_KEY = "a44164dfbe3191271a79f6e55b7d26b6";
   // 默认坐标（北京天安门）
@@ -97,8 +103,12 @@
   };
   export default {
 	mixins: [MescrollMixin],
+	components: {
+		HomeSkeleton
+	},
 		data() {
 			return {
+				pageLoading: true,
 				currentLocation: "定位中…",
 				latitude: null,
 				longitude: null,
@@ -185,9 +195,23 @@
 		},
 
  		onLoad() {
+			// 5秒后自动关闭骨架屏（防止接口异常一直显示）
+			setTimeout(() => {
+				if (this.pageLoading) {
+					this.pageLoading = false;
+				}
+			}, 5000);
+			
 			setTimeout(() => {
 				this.getRealLocation();
 			}, 500);
+		},
+		
+		onShow() {
+			// 页面显示时如果已经有数据，关闭骨架屏
+			if (this.storeList.length > 0) {
+				this.pageLoading = false;
+			}
 		},
 
 		onUnload() {
@@ -596,8 +620,13 @@
 					if (page.num === 1) this.storeList = [];
 					this.storeList = this.storeList.concat(arr);
 					this.isLoaded = true;
+					// 第一页数据加载完成后关闭骨架屏
+					if (page.num === 1) {
+						this.pageLoading = false;
+					}
 					this.mescroll.endSuccess(arr.length, total);
 				}).catch(() => {
+					this.pageLoading = false;
 					this.mescroll.endErr();
 				});
  			},
