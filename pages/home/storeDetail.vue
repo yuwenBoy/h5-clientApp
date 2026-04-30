@@ -711,17 +711,7 @@
 					url: `/pages/order/confirm?storeId=${this.storeInfo.id}&total=${this.cartPrice}`
 				})
 			},
-			
-			// 门店打烊提示
-			showClosedToast() {
-				const statusText = this.storeInfo.status == 0 || this.storeInfo.status == '0' ? '已打烊' : '休息中'
-				uni.showToast({
-					title: `门店${statusText}，暂无法下单`,
-					icon: 'none',
-					duration: 2000
-				})
-			},
- 
+
  			callPhone(phone) {
  				uni.makePhoneCall({ phoneNumber: phone })
  			},

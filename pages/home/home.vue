@@ -1000,6 +1000,9 @@
 			margin-top: 20rpx;
 			font-size: 28rpx;
 			color: #999;
+		  display: flex;
+			align-items: center;
+			justify-content: center;
 		}
 	}
 </style>

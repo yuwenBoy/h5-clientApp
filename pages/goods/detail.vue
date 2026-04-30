@@ -30,13 +30,13 @@
 
            <!-- 已有购物车记录 → 显示加减 -->
            <view class="num-box" v-if="cartCount > 0">
-             <view class="num-btn" @click.stop="isBusinessOpen ? cutNum() : showClosedToast()" :class="{ disabled: buyNum <= 1 || !isBusinessOpen }">-</view>
+             <view class="num-btn" @click.stop="cutNum" :class="{ disabled: buyNum <= 1 }">-</view>
              <view class="num-text">{{ buyNum }}</view>
-             <view class="num-btn" @click.stop="isBusinessOpen ? addNum() : showClosedToast()" :class="{ disabled: buyNum >= goods.stock || !isBusinessOpen }">+</view>
+             <view class="num-btn" @click.stop="addNum" :class="{ disabled: buyNum >= goods.stock }">+</view>
            </view>
 
            <!-- 无购物车记录 → 显示加入购物车 -->
-           <view class="add-cart-btn" :class="{ disabled: !isBusinessOpen }" @click="isBusinessOpen ? toAddCart() : showClosedToast()">
+           <view class="add-cart-btn" v-else @click="toAddCart">
              加入购物车
            </view>
          </view>
@@ -63,33 +63,27 @@
        <!-- 底部占位 -->
        <view class="bottom-space"></view>
 
-       <!-- 门店休息提示条（淘宝闪购风格） -->
-      <view class="store-closed-notice" v-if="!isBusinessOpen">
-        <uni-icons type="info-filled" size="14" color="#ff4d4f" />
-        <text class="notice-text">门店{{ storeInfo.status == 0 || storeInfo.status == '0' ? '已打烊' : '休息中' }}，营业时间 {{ storeInfo.business_hours || '09:00-22:00' }}</text>
-      </view>
-
       <!-- 加入购物车动画元素 -->
       <view class="add-cart-animation" v-if="showAddCartAnimation" :style="animationStyle"></view>
      <!-- 底部结算栏 -->
-     <view class="submit-bar" :class="{ 'cart-open': showCart, 'store-closed': !isBusinessOpen }">
+     <view class="submit-bar" :class="{ 'cart-open': showCart }">
        <!-- 结算栏主体 -->
-       <view class="submit-content" @click="isBusinessOpen ? toggleCart() : showClosedToast()">
-         <view class="cart-icon" :class="{ active: cartCount > 0, disabled: !isBusinessOpen }">
+       <view class="submit-content" @click="toggleCart">
+         <view class="cart-icon" :class="{ active: cartCount > 0 }">
            <image class="cart-img" src="/static/img/cart.png" mode="aspectFill" />
            <view class="cart-badge" v-if="cartCount > 0">{{ cartCount }}</view>
          </view>
          <view class="price-info">
            <view class="price-row" v-if="cartCount > 0">
-             <text class="total" :class="{ disabled: !isBusinessOpen }">¥{{ cartTotalPrice.toFixed(2) }}</text>
+             <text class="total">¥{{ cartTotalPrice.toFixed(2) }}</text>
              <text class="delivery-fee">配送费¥{{ storeInfo.delivery_fee || 5 }}</text>
            </view>
            <view class="price-row" v-else>
-             <text class="empty-tip" :class="{ disabled: !isBusinessOpen }">未选购商品</text>
+             <text class="empty-tip">未选购商品</text>
            </view>
          </view>
        </view>
-       <view class="btn-settle" :class="{ disabled: !canSubmit || !isBusinessOpen, 'store-closed-btn': !isBusinessOpen }" :disabled="!canSubmit || !isBusinessOpen" @click="isBusinessOpen ? toSettle() : showClosedToast()">
+       <view class="btn-settle" :class="{ disabled: !canSubmit }" :disabled="!canSubmit" @click="toSettle">
          {{ settleBtnText }}
        </view>
      </view>
@@ -177,9 +171,7 @@ export default {
      showCart: false,
      storeInfo: {
        delivery_fee: 5,
-       min_order_amount: 30,
-       status: 1,
-       business_hours: '09:00-22:00'
+       min_order_amount: 30
      }
     }
   },
@@ -233,45 +225,12 @@ export default {
     },
     // 结算按钮文字
     settleBtnText() {
-      // 门店未营业时
-      if (!this.isBusinessOpen) {
-        return this.storeInfo.status == 0 || this.storeInfo.status == '0' ? '门店已打烊' : '门店休息中'
-      }
       if (this.cartCount === 0) return '去结算'
       const minAmount = this.storeInfo.min_order_amount || 30
       if (this.cartTotalPrice < minAmount) {
         return `差¥${(minAmount - this.cartTotalPrice).toFixed(1)}起送`
       }
       return '去结算'
-    },
-    // 门店是否营业中
-    isBusinessOpen() {
-      const status = this.storeInfo.status
-      // 如果有明确的状态字段（支持字符串和数字）
-      if (status === 1 || status === '1') return true
-      if (status === 0 || status === '0' || status === 2 || status === '2') return false
-      // 否则根据营业时间判断
-      return this.checkBusinessTime()
-    },
-    // 检查营业时间
-    checkBusinessTime() {
-      const now = new Date()
-      const hours = now.getHours()
-      const minutes = now.getMinutes()
-      const currentMinutes = hours * 60 + minutes
-      
-      const businessHours = this.storeInfo.business_hours || '09:00-22:00'
-      const [startStr, endStr] = businessHours.split('-')
-      
-      if (!startStr || !endStr) return true
-      
-      const [startHour, startMin] = startStr.split(':').map(Number)
-      const [endHour, endMin] = endStr.split(':').map(Number)
-      
-      const startMinutes = startHour * 60 + startMin
-      const endMinutes = endHour * 60 + endMin
-      
-      return currentMinutes >= startMinutes && currentMinutes < endMinutes
     }
   },
    mounted() {
@@ -988,16 +947,6 @@ export default {
       this.showCart = !this.showCart
     },
     
-    // 门店打烊提示
-    showClosedToast() {
-      const statusText = this.storeInfo.status == 0 || this.storeInfo.status == '0' ? '已打烊' : '休息中'
-      uni.showToast({
-        title: `门店${statusText}，暂无法下单`,
-        icon: 'none',
-        duration: 2000
-      })
-    },
-     
     // 更新购物车商品数量
     updateCartItemQuantity(item, quantity) {
       if (quantity < 1) {
@@ -1439,42 +1388,6 @@ export default {
  .btn-settle.disabled {
    background: #ccc;
    cursor: not-allowed;
- }
-
- .btn-settle.store-closed-btn {
-   background: #999;
-   color: #fff;
- }
-
- .submit-bar.store-closed .cart-icon.disabled .cart-img {
-   opacity: 0.3;
- }
-
- .submit-bar.store-closed .total.disabled,
- .submit-bar.store-closed .empty-tip.disabled {
-   color: #999;
- }
-
- /* 门店休息提示条（淘宝闪购风格） */
- .store-closed-notice {
-   background: #fff8f0;
-   padding: 20rpx 30rpx;
-   display: flex;
-   align-items: center;
-   gap: 12rpx;
-   margin-bottom: 10rpx;
-   border-top: 1rpx solid #fff1e6;
-   border-bottom: 1rpx solid #fff1e6;
- }
-
- .store-closed-notice .notice-text {
-   font-size: 26rpx;
-   color: #ff4d4f;
- }
-
- .add-cart-btn.disabled {
-   background: #f5f5f5;
-   color: #999;
  }
 
  /* 加入购物车动画 */
