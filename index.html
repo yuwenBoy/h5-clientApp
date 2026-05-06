@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>闪速达</title>
+  <style>
+    /* 简单的样式重置 */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    html, body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      background-color: #f5f5f5;
+      overflow-x: hidden;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    #app {
+      min-height: 100vh;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      height: 100%;
+    }
+    .search-bar-sticky {
+      position: sticky;
+      top: 0;
+      z-index: 999;
+      padding: 15rpx 30rpx;
+      background: #fff;
+    }
+    .search-box {
+      display: flex;
+      align-items: center;
+      height: 64rpx;
+      padding: 0 24rpx;
+      background: #f2f2f2;
+      border-radius: 32rpx;
+    }
+    .placeholder {
+      margin-left: 12rpx;
+      font-size: 28rpx;
+      color: #999;
+    }
+    .location-bar {
+      display: flex;
+      align-items: center;
+      padding: 16rpx 30rpx;
+      background: #fff;
+      border-bottom: 1rpx solid #f0f0f0;
+    }
+    .location-text {
+      flex: 1;
+      margin-left: 10rpx;
+      font-size: 28rpx;
+      color: #333;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .banner-swiper {
+      width: 100%;
+      height: 300rpx;
+      background: #f0f0f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #999;
+    }
+    .category-nav {
+      display: flex;
+      padding: 30rpx 0;
+      background: #fff;
+    }
+    .category-item {
+      flex-shrink: 0;
+      width: 150rpx;
+      text-align: center;
+    }
+    .category-icon {
+      width: 80rpx;
+      height: 80rpx;
+      border-radius: 50%;
+      background: #f0f0f0;
+      margin: 0 auto;
+    }
+    .category-name {
+      margin-top: 10rpx;
+      font-size: 24rpx;
+      color: #333;
+    }
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 30rpx;
+      border-bottom: 1rpx solid #eee;
+      background: #fff;
+    }
+    .section-title {
+      font-size: 32rpx;
+      font-weight: bold;
+    }
+    .flash-sale-section {
+      margin-top: 20rpx;
+      background: #fff;
+    }
+    .flash-sale-scroll {
+      padding: 30rpx 0;
+      display: flex;
+      overflow-x: auto;
+    }
+    .flash-sale-item {
+      flex-shrink: 0;
+      width: 280rpx;
+      margin-left: 30rpx;
+    }
+    .flash-sale-image {
+      width: 280rpx;
+      height: 280rpx;
+      border-radius: 8rpx;
+      background: #f0f0f0;
+    }
+    .flash-sale-info {
+      margin-top: 15rpx;
+    }
+    .flash-sale-name {
+      font-size: 24rpx;
+      color: #333;
+      line-height: 1.4;
+    }
+    .flash-sale-price {
+      margin-top: 10rpx;
+      display: flex;
+      align-items: baseline;
+    }
+    .price {
+      font-size: 28rpx;
+      font-weight: bold;
+      color: #ff6000;
+      margin-right: 10rpx;
+    }
+    .original-price {
+      font-size: 20rpx;
+      color: #999;
+      text-decoration: line-through;
+    }
+    .hot-goods-section {
+      margin-top: 20rpx;
+      background: #fff;
+    }
+    .hot-goods-list {
+      display: flex;
+      flex-wrap: wrap;
+      padding: 0 30rpx 30rpx;
+    }
+    .hot-goods-item {
+      width: calc(50% - 15rpx);
+      margin-top: 30rpx;
+    }
+    .hot-goods-item:nth-child(odd) {
+      margin-right: 30rpx;
+    }
+    .hot-goods-image {
+      width: 100%;
+      height: 300rpx;
+      border-radius: 8rpx;
+      background: #f0f0f0;
+    }
+    .hot-goods-info {
+      margin-top: 15rpx;
+    }
+    .hot-goods-name {
+      font-size: 24rpx;
+      color: #333;
+      line-height: 1.4;
+    }
+    .hot-goods-price {
+      margin-top: 10rpx;
+      font-size: 28rpx;
+      font-weight: bold;
+      color: #ff6000;
+    }
+    .store-section {
+      margin-top: 20rpx;
+    }
+    .store-list {
+      background: #fff;
+    }
+    .store-item {
+      display: flex;
+      padding: 30rpx;
+      border-bottom: 1rpx solid #f0f0f0;
+    }
+    .store-image {
+      width: 160rpx;
+      height: 160rpx;
+      border-radius: 8rpx;
+      background: #f0f0f0;
+      flex-shrink: 0;
+    }
+    .store-info {
+      flex: 1;
+      margin-left: 20rpx;
+    }
+    .store-header {
+      display: flex;
+      justify-content: space-between;
+    }
+    .store-name {
+      font-size: 32rpx;
+      font-weight: bold;
+    }
+    .store-distance {
+      font-size: 24rpx;
+      color: #999;
+    }
+    .store-status {
+      margin-top: 10rpx;
+      display: flex;
+      gap: 8rpx;
+      flex-wrap: wrap;
+    }
+    .text {
+      padding: 6rpx 10rpx;
+      border-radius: 6rpx;
+      font-size: 24rpx;
+      color: #fff;
+    }
+    .time {
+      padding: 6rpx 10rpx;
+      font-size: 24rpx;
+      color: #666;
+    }
+    .store-status-open .text {
+      background: #00c48c;
+    }
+    .store-meta {
+      margin-top: 10rpx;
+    }
+    .rating {
+      color: #ff6000;
+      font-size: 24rpx;
+    }
+    .sales {
+      margin-left: 20rpx;
+      color: #666;
+      font-size: 24rpx;
+    }
+    .store-delivery {
+      margin-top: 10rpx;
+      font-size: 24rpx;
+    }
+    .delivery-fee {
+      color: #ff6000;
+      margin-right: 20rpx;
+    }
+    .min-order {
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- 吸顶搜索框 -->
+    <div class="search-bar-sticky">
+      <div class="search-box">
+        <span>🔍</span>
+        <span class="placeholder">搜索闪购商品</span>
+      </div>
+    </div>
+
+    <!-- 定位信息 -->
+    <div class="location-bar">
+      <span>📍</span>
+      <span class="location-text">北京市</span>
+      <span>›</span>
+    </div>
+
+    <!-- 轮播图 -->
+    <div class="banner-swiper">
+      轮播图
+    </div>
+
+    <!-- 分类导航 -->
+    <div class="category-nav">
+      <div class="category-item">
+        <div class="category-icon"></div>
+        <span class="category-name">美食</span>
+      </div>
+      <div class="category-item">
+        <div class="category-icon"></div>
+        <span class="category-name">超市</span>
+      </div>
+      <div class="category-item">
+        <div class="category-icon"></div>
+        <span class="category-name">鲜花</span>
+      </div>
+      <div class="category-item">
+        <div class="category-icon"></div>
+        <span class="category-name">药品</span>
+      </div>
+      <div class="category-item">
+        <div class="category-icon"></div>
+        <span class="category-name">跑腿</span>
+      </div>
+      <div class="category-item">
+        <div class="category-icon"></div>
+        <span class="category-name">水果</span>
+      </div>
+      <div class="category-item">
+        <div class="category-icon"></div>
+        <span class="category-name">奶茶</span>
+      </div>
+      <div class="category-item">
+        <div class="category-icon"></div>
+        <span class="category-name">更多</span>
+      </div>
+    </div>
+
+    <!-- 闪购专区 -->
+    <div class="flash-sale-section">
+      <div class="section-header">
+        <span class="section-title">限时闪购</span>
+        <div>
+          <span style="font-size: 24rpx; color: #666; margin-right: 10rpx;">距结束</span>
+          <span style="background: #333; color: #fff; padding: 2rpx 8rpx; border-radius: 4rpx;">00</span>
+          <span style="margin: 0 10rpx;">:</span>
+          <span style="background: #333; color: #fff; padding: 2rpx 8rpx; border-radius: 4rpx;">30</span>
+          <span style="margin: 0 10rpx;">:</span>
+          <span style="background: #333; color: #fff; padding: 2rpx 8rpx; border-radius: 4rpx;">00</span>
+        </div>
+      </div>
+      <div class="flash-sale-scroll">
+        <div class="flash-sale-item">
+          <div class="flash-sale-image"></div>
+          <div class="flash-sale-info">
+            <span class="flash-sale-name">iPhone 15 Pro Max 256GB</span>
+            <div class="flash-sale-price">
+              <span class="price">¥8999</span>
+              <span class="original-price">¥9999</span>
+            </div>
+            <div style="margin-top: 10rpx;">
+              <div style="width: 100%; height: 4rpx; background: #f2f2f2; border-radius: 2rpx;">
+                <div style="height: 100%; width: 75%; background: #ff6000; border-radius: 2rpx;"></div>
+              </div>
+              <span style="margin-top: 8rpx; font-size: 20rpx; color: #999; display: block;">75% 已抢</span>
+            </div>
+          </div>
+        </div>
+        <div class="flash-sale-item">
+          <div class="flash-sale-image"></div>
+          <div class="flash-sale-info">
+            <span class="flash-sale-name">AirPods Pro 2</span>
+            <div class="flash-sale-price">
+              <span class="price">¥1299</span>
+              <span class="original-price">¥1499</span>
+            </div>
+            <div style="margin-top: 10rpx;">
+              <div style="width: 100%; height: 4rpx; background: #f2f2f2; border-radius: 2rpx;">
+                <div style="height: 100%; width: 60%; background: #ff6000; border-radius: 2rpx;"></div>
+              </div>
+              <span style="margin-top: 8rpx; font-size: 20rpx; color: #999; display: block;">60% 已抢</span>
+            </div>
+          </div>
+        </div>
+        <div class="flash-sale-item">
+          <div class="flash-sale-image"></div>
+          <div class="flash-sale-info">
+            <span class="flash-sale-name">MacBook Air M2</span>
+            <div class="flash-sale-price">
+              <span class="price">¥7999</span>
+              <span class="original-price">¥8999</span>
+            </div>
+            <div style="margin-top: 10rpx;">
+              <div style="width: 100%; height: 4rpx; background: #f2f2f2; border-radius: 2rpx;">
+                <div style="height: 100%; width: 45%; background: #ff6000; border-radius: 2rpx;"></div>
+              </div>
+              <span style="margin-top: 8rpx; font-size: 20rpx; color: #999; display: block;">45% 已抢</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 热门商品 -->
+    <div class="hot-goods-section">
+      <div class="section-header">
+        <span class="section-title">热门商品</span>
+      </div>
+      <div class="hot-goods-list">
+        <div class="hot-goods-item">
+          <div class="hot-goods-image"></div>
+          <div class="hot-goods-info">
+            <span class="hot-goods-name">iPhone 15 Pro Max 256GB</span>
+            <span class="hot-goods-price">¥8999</span>
+          </div>
+        </div>
+        <div class="hot-goods-item">
+          <div class="hot-goods-image"></div>
+          <div class="hot-goods-info">
+            <span class="hot-goods-name">AirPods Pro 2</span>
+            <span class="hot-goods-price">¥1299</span>
+          </div>
+        </div>
+        <div class="hot-goods-item">
+          <div class="hot-goods-image"></div>
+          <div class="hot-goods-info">
+            <span class="hot-goods-name">MacBook Air M2</span>
+            <span class="hot-goods-price">¥7999</span>
+          </div>
+        </div>
+        <div class="hot-goods-item">
+          <div class="hot-goods-image"></div>
+          <div class="hot-goods-info">
+            <span class="hot-goods-name">iPad Pro 12.9</span>
+            <span class="hot-goods-price">¥8999</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 推荐商家 -->
+    <div class="store-section">
+      <div class="section-header">
+        <span class="section-title">优质商家</span>
+      </div>
+      <div class="store-list">
+        <div class="store-item">
+          <div class="store-image"></div>
+          <div class="store-info">
+            <div class="store-header">
+              <span class="store-name">闪速达超市</span>
+              <span class="store-distance">500m</span>
+            </div>
+            <div class="store-status store-status-open">
+              <span class="text">营业中</span>
+              <span class="time">08:00-22:00</span>
+            </div>
+            <div class="store-meta">
+              <span class="rating">⭐ 4.8</span>
+              <span class="sales">月售1234</span>
+            </div>
+            <div class="store-delivery">
+              <span class="delivery-fee">配送 ¥3</span>
+              <span class="min-order">起送 ¥20</span>
+            </div>
+          </div>
+        </div>
+        <div class="store-item">
+          <div class="store-image"></div>
+          <div class="store-info">
+            <div class="store-header">
+              <span class="store-name">美食广场</span>
+              <span class="store-distance">1.2km</span>
+            </div>
+            <div class="store-status store-status-open">
+              <span class="text">营业中</span>
+              <span class="time">09:00-23:00</span>
+            </div>
+            <div class="store-meta">
+              <span class="rating">⭐ 4.6</span>
+              <span class="sales">月售2345</span>
+            </div>
+            <div class="store-delivery">
+              <span class="delivery-fee">配送 ¥5</span>
+              <span class="min-order">起送 ¥30</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
