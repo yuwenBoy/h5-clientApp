@@ -323,7 +323,8 @@ export default {
     // 检查登录状态
     checkLogin() {
       const token = this.$utils.getStorage('token')
-      if (!token || token === '{}') {
+      // 统一判断逻辑：token 必须是字符串且非空
+      if (!token || typeof token !== 'string' || token === '{}' || token.trim() === '') {
         uni.navigateTo({
           url: '/pages/user/login?redirect=' + encodeURIComponent('/pages/user/address/list')
         })

@@ -218,7 +218,115 @@ let processImageUrl = function(url) {
 	return url.replace('image.jxxqz.com', '192.168.124.25')
 }
 
+// ==================== 倒计时相关工具 ====================
+
+// 倒计时过期时间（毫秒），默认15分钟
+const DEFAULT_EXPIRE_TIME = 15 * 60 * 1000
+
+// 即将过期提醒时间（毫秒），默认5分钟
+const WARNING_TIME = 5 * 60 * 1000
+
+// 计算订单过期时间戳
+// expireTime: 过期时间戳（秒），createTime: 创建时间戳（秒），expireMinutes: 过期分钟数
+let calculateExpireTime = function(expireTime, createTime, expireMinutes = 15) {
+	// 优先使用后端返回的过期时间
+	if (expireTime) {
+		return expireTime * 1000
+	}
+	// 如果没有，则使用创建时间 + 过期分钟数
+	if (createTime) {
+		return createTime * 1000 + expireMinutes * 60 * 1000
+	}
+	// 默认15分钟后过期
+	return Date.now() + expireMinutes * 60 * 1000
+}
+
+// 格式化倒计时为 MM:SS 或 HH:MM:SS
+let formatCountdown = function(remainMs) {
+	if (remainMs <= 0) return '00:00'
+	
+	const totalSeconds = Math.floor(remainMs / 1000)
+	const hours = Math.floor(totalSeconds / 3600)
+	const minutes = Math.floor((totalSeconds % 3600) / 60)
+	const seconds = totalSeconds % 60
+	
+	if (hours > 0) {
+		return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+	}
+	return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+}
+
+// 判断是否即将过期（低于5分钟）
+let isExpiringSoon = function(remainMs) {
+	return remainMs > 0 && remainMs <= WARNING_TIME
+}
+
+// 判断是否已过期
+let isExpired = function(remainMs) {
+	return remainMs <= 0
+}
+
+// ==================== 网络请求工具 ====================
+
+// 网络错误类型判断
+let getNetworkErrorType = function(error) {
+	const errMsg = error?.message || error?.errMsg || ''
+	
+	if (errMsg.includes('timeout') || errMsg.includes('Timeout')) {
+		return 'timeout'
+	}
+	if (errMsg.includes('network') || errMsg.includes('Network') || 
+			errMsg.includes('fail') || errMsg.includes('断网') ||
+			error?.statusCode === 0) {
+		return 'network'
+	}
+	return 'server'
+}
+
+// 显示网络错误提示
+let showNetworkError = function(error, duration = 2000) {
+	const type = getNetworkErrorType(error)
+	const messages = {
+		network: '网络连接失败，请检查网络',
+		timeout: '请求超时，请稍后重试',
+		server: '服务器异常，请稍后重试'
+	}
+	
+	uni.showToast({
+		title: messages[type] || '加载失败',
+		icon: 'none',
+		duration
+	})
+}
+
+// 通用请求失败处理（带重试次数）
+let handleRequestError = function(error, retryCount = 0, maxRetries = 2) {
+	const type = getNetworkErrorType(error)
+	
+	return new Promise((resolve, reject) => {
+		// 如果还有重试次数
+		if (retryCount < maxRetries) {
+			console.log(`请求失败，第 ${retryCount + 1} 次重试...`)
+			setTimeout(() => {
+				resolve('retry')
+			}, 1000 * (retryCount + 1)) // 递增延迟
+		} else {
+			// 达到最大重试次数，显示错误
+			showNetworkError(error)
+			reject(error)
+		}
+	})
+}
+
+// 登出函数
+let loginOut = function() {
+	removeStorage('token')
+	removeStorage('userInfo')
+	removeStorage('mix')
+}
+
 export default {
+	loginOut,
 	goLogin,
 	isLogin,
 	isSafari,
@@ -235,6 +343,17 @@ export default {
 	isPhone,
 	isCode,
 	processImageUrl,
+	// 倒计时工具
+	calculateExpireTime,
+	formatCountdown,
+	isExpiringSoon,
+	isExpired,
+	DEFAULT_EXPIRE_TIME,
+	WARNING_TIME,
+	// 网络请求工具
+	getNetworkErrorType,
+	showNetworkError,
+	handleRequestError,
 }
 	
 	

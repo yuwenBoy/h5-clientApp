@@ -1,9 +1,11 @@
 {
   "dependencies": {
+    "build": "^0.1.4",
     "qqmap-wx-jssdk": "^1.0.0",
     "uni-simple-router": "^1.5.4"
   },
   "devDependencies": {
-    "http-server": "^14.1.1"
+    "http-server": "^14.1.1",
+    "vue-template-compiler": "^2.7.16"
   }
 }

@@ -174,7 +174,8 @@
 		checkLoginStatus() {
 			// 使用 $utils.getStorage 读取（会自动添加项目前缀）
 			const token = this.$utils.getStorage('token')
-			this.isLogin = !!token && JSON.stringify(token) !== '{}'
+			// 统一判断逻辑：token 必须是字符串且非空
+			this.isLogin = !!(token && typeof token === 'string' && token !== '{}' && token.trim() !== '')
 			
 			if (this.isLogin) {
 				// 获取用户信息
@@ -184,12 +185,15 @@
 					avatar: userInfo.avatar || userInfo.headImg || '',
 					phone: userInfo.phone || userInfo.mobile || ''
 				}
+			} else {
+				// 未登录时清空用户信息
+				this.userInfo = { nickname: '', avatar: '', phone: '' }
 			}
 		},
 		refreshUserInfo() {
-			// 强制刷新登录状态和用户信息
+			// 强制刷新登录状态和用户信息 - 使用与 checkLoginStatus 一致的逻辑
 			const token = this.$utils.getStorage('token')
-			const hasLogin = !!token && JSON.stringify(token) !== '{}'
+			const hasLogin = !!(token && typeof token === 'string' && token !== '{}' && token.trim() !== '')
 			
 			// 如果登录状态有变化，更新数据
 			if (hasLogin !== this.isLogin) {
@@ -203,10 +207,30 @@
 					avatar: userInfo.avatar || userInfo.headImg || '',
 					phone: userInfo.phone || userInfo.mobile || ''
 				}
+				// 如果本地有 token 但没有 userInfo，尝试从后端获取
+				if (!userInfo || !userInfo.nickname) {
+					this.fetchUserInfo()
+				}
 			} else {
 				// 未登录时清空用户信息
 				this.userInfo = { nickname: '', avatar: '', phone: '' }
 			}
+		},
+		fetchUserInfo() {
+			// 从后端获取用户信息
+			this.$api.userInfo().then(res => {
+				if (res && res.nickname) {
+					this.userInfo = {
+						nickname: res.nickname || res.userName || '用户',
+						avatar: res.avatar || res.headImg || '',
+						phone: res.phone || res.mobile || ''
+					}
+					// 缓存用户信息
+					this.$utils.setStorage('userInfo', res)
+				}
+			}).catch(err => {
+				console.log('获取用户信息失败', err)
+			})
 		},
 			toMyInfo(e) {
 				this.$Router.push({
@@ -228,8 +252,9 @@
 		},
 		toLogin(e) {
 			// 从当前页面进入登录，登录成功后返回当前页面
+			const currentPage = '/pages/user/user'
 			uni.navigateTo({
-				url: '/pages/user/login?redirect=user'
+				url: `/pages/user/login?redirect=${encodeURIComponent(currentPage)}`
 			})
 		},
 		onscroll(e) {

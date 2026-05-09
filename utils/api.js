@@ -19,9 +19,11 @@ const goods = {
 // 用户相关接口
 const user = {
   // 发送短信验证码
- sendSmsCode:'/client/user/sendCode',
+  sendSmsCode:'/client/user/sendCode',
   // 手机号登录
- loginByPhone:'/client/user/login',
+  loginByPhone:'/client/user/login',
+  // 获取用户信息
+  userInfo:'/client/user/info',
  // 获取地址详情
  getAddressDetail:'/client/address/detail',
  // 编辑地址

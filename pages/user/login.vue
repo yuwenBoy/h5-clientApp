@@ -121,6 +121,40 @@ export default {
   },
 
   methods: {
+    // 登录后跳转
+    doLoginRedirect() {
+      // 如果有指定返回页面，则跳转到指定页面
+      if (this.redirectUrl) {
+        const decodedUrl = decodeURIComponent(this.redirectUrl)
+        console.log('登录成功，跳转到:', decodedUrl)
+        
+        // tabBar 页面使用 reLaunch，普通页面使用 navigateBack
+        const tabPages = ['/pages/home/home', '/pages/order/list', '/pages/user/user', '/pages/cart/cart']
+        const isTabPage = tabPages.some(tab => decodedUrl.includes(tab))
+        
+        if (isTabPage) {
+          uni.reLaunch({ url: decodedUrl })
+        } else {
+          // 先尝试 reLaunch 跳转到指定页面
+          uni.reLaunch({ 
+            url: decodedUrl,
+            fail: () => {
+              // 如果失败，尝试 navigateBack 返回
+              uni.navigateBack({
+                fail: () => {
+                  // 都失败则跳转到首页
+                  uni.reLaunch({ url: '/pages/home/home' })
+                }
+              })
+            }
+          })
+        }
+      } else {
+        // 默认跳转到首页
+        uni.reLaunch({ url: '/pages/home/home' })
+      }
+    },
+    
     goBack() {
       uni.navigateBack();
     },
@@ -194,17 +228,10 @@ export default {
           this.$utils.setStorage('userInfo', res.result.data.userInfo);
           this.$utils.toast('登录成功');
           
+          // iOS 兼容：延迟200ms后跳转（等待 toast 显示完成）
           setTimeout(() => {
-            // 如果有指定返回页面，则跳转到指定页面
-            if (this.redirectUrl) {
-              const decodedUrl = decodeURIComponent(this.redirectUrl)
-              // 使用 redirectTo 关闭登录页后跳转到目标页
-              uni.redirectTo({ url: decodedUrl })
-            } else {
-              // 默认跳转到首页
-              uni.switchTab({ url: '/pages/home/home' });
-            }
-          }, 1000);
+            this.doLoginRedirect()
+          }, 200);
         } else {
           this.$utils.toast(res.message || '登录失败');
         }

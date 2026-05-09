@@ -10,6 +10,14 @@
       <view class="status-header" :class="getStatusClass(order.orderStatus)">
         <view class="status-text">{{ order.orderStatusText || getStatusText(order.orderStatus) }}</view>
         <view class="status-desc">{{ getStatusDesc(order.orderStatus) }}</view>
+        <!-- 待支付倒计时 -->
+        <view class="pay-countdown" v-if="order.orderStatus === 0 && countdownText">
+          <text class="countdown-icon">⏰</text>
+          <text class="countdown-time" :class="{ 'countdown-urgent': isWarning }">
+            {{ countdownText }}
+          </text>
+          <text class="countdown-label">{{ isWarning ? '后自动取消' : '后自动取消' }}</text>
+        </view>
       </view>
 
       <!-- 骑手信息（配送中显示） -->
@@ -187,6 +195,10 @@ export default {
       orderId: null,
       loading: true,
       storeLogo: '/static/logo.png',
+      countdownText: '',
+      isWarning: false,
+      countdownTimer: null,
+      hasWarned: false, // 是否已弹出过提醒
       order: {
         orderNo: '',
         orderStatus: 0,
@@ -231,13 +243,101 @@ export default {
       setTimeout(() => uni.navigateBack(), 1500)
     }
   },
+  
+  onUnload() {
+    this.stopCountdown()
+  },
+  
   // 下拉刷新
   onPullDownRefresh() {
     this.getOrderDetail().finally(() => {
       uni.stopPullDownRefresh()
     })
   },
+  
   methods: {
+    // ========== 倒计时相关方法 ==========
+    
+    // 初始化倒计时
+    initCountdown() {
+      const remainMs = this.calculateRemainTime()
+      if (remainMs > 0) {
+        this.countdownText = this.$utils.formatCountdown(remainMs)
+        this.isWarning = this.$utils.isExpiringSoon(remainMs)
+        this.startCountdown()
+      } else {
+        this.countdownText = '00:00'
+        this.isWarning = false
+      }
+    },
+    
+    // 启动倒计时
+    startCountdown() {
+      this.stopCountdown()
+      this.countdownTimer = setInterval(() => {
+        this.updateCountdown()
+      }, 1000)
+    },
+    
+    // 停止倒计时
+    stopCountdown() {
+      if (this.countdownTimer) {
+        clearInterval(this.countdownTimer)
+        this.countdownTimer = null
+      }
+    },
+    
+    // 更新倒计时
+    updateCountdown() {
+      if (this.order.orderStatus !== 0) {
+        this.stopCountdown()
+        return
+      }
+      
+      const remainMs = this.calculateRemainTime()
+      if (remainMs > 0) {
+        this.countdownText = this.$utils.formatCountdown(remainMs)
+        this.isWarning = this.$utils.isExpiringSoon(remainMs)
+        
+        // 即将超时提醒（只提醒一次）
+        if (this.isWarning && !this.hasWarned) {
+          this.hasWarned = true
+          this.showExpiringWarning()
+        }
+      } else {
+        this.countdownText = '00:00'
+        this.isWarning = false
+        // 超时了，刷新订单状态
+        this.getOrderDetail()
+      }
+    },
+    
+    // 计算剩余时间
+    calculateRemainTime() {
+      const expireTime = this.$utils.calculateExpireTime(
+        this.order.expireTime,
+        this.order.createTime,
+        15 // 默认15分钟
+      )
+      return expireTime - Date.now()
+    },
+    
+    // 显示即将超时警告
+    showExpiringWarning() {
+      uni.showModal({
+        title: '⚠️ 支付即将超时',
+        content: `您的订单将在 ${this.countdownText} 后自动取消，请尽快完成支付！`,
+        confirmText: '立即支付',
+        cancelText: '知道了',
+        success: (res) => {
+          if (res.confirm) {
+            this.toPay()
+          }
+        }
+      })
+    },
+    
+    // ========== 原有方法 ==========
     // 获取订单详情
     async getOrderDetail() {
       this.loading = true
@@ -260,6 +360,13 @@ export default {
           }
           
           this.order = order
+          
+          // 如果是待支付订单，启动倒计时
+          if (order.orderStatus === 0) {
+            this.initCountdown()
+          } else {
+            this.stopCountdown()
+          }
         } else {
           uni.showToast({ title: res.message || '获取订单详情失败', icon: 'none' })
         }
@@ -499,6 +606,45 @@ $primary: #ff6b35;
     font-size: 26rpx;
     opacity: 0.9;
   }
+  
+  // 待支付倒计时
+  .pay-countdown {
+    margin-top: 20rpx;
+    padding: 16rpx 24rpx;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 30rpx;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    
+    .countdown-icon {
+      font-size: 28rpx;
+      margin-right: 8rpx;
+    }
+    
+    .countdown-time {
+      font-size: 36rpx;
+      font-weight: bold;
+      font-family: monospace;
+      margin: 0 8rpx;
+      
+      &.countdown-urgent {
+        color: #FFEB3B;
+        animation: blink 1s ease-in-out infinite;
+      }
+    }
+    
+    .countdown-label {
+      font-size: 24rpx;
+      opacity: 0.9;
+    }
+  }
+}
+
+// 倒计时闪烁动画
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 // 骑手信息卡片

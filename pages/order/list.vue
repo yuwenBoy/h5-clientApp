@@ -47,6 +47,14 @@
             {{ getStatusText(order.orderStatus) }}
           </view>
         </view>
+        
+        <!-- 待支付倒计时提示 -->
+        <view class="countdown-tips" v-if="order.orderStatus === 0 && order.countdownText">
+          <view class="countdown-box" :class="{ 'countdown-warning': order.isWarning }">
+            <text class="countdown-icon">⏰</text>
+            <text class="countdown-text">{{ order.isWarning ? '即将超时 ' : '请在 ' }}{{ order.countdownText }}{{ order.isWarning ? ' 内完成支付' : ' 内完成支付，超时自动取消' }}</text>
+          </view>
+        </view>
 
         <!-- 门店信息 -->
         <view class="store-info">
@@ -207,7 +215,9 @@ export default {
       page: 1,
       pageSize: 10,
       noMore: false,
-      navigating: false // 防止重复跳转
+      navigating: false, // 防止重复跳转
+      countdownTimer: null, // 倒计时定时器
+      warnedOrders: new Set() // 已弹出过提醒的订单ID集合
     }
   },
   
@@ -223,6 +233,7 @@ export default {
       }
     }
     this.refreshList()
+    this.startCountdown()
   },
   
   onShow() {
@@ -232,7 +243,87 @@ export default {
     }
   },
   
+  onUnload() {
+    this.stopCountdown()
+  },
+  
   methods: {
+    // ========== 倒计时相关方法 ==========
+    
+    // 启动全局倒计时
+    startCountdown() {
+      this.stopCountdown()
+      this.countdownTimer = setInterval(() => {
+        this.updateOrderCountdown()
+      }, 1000)
+    },
+    
+    // 停止全局倒计时
+    stopCountdown() {
+      if (this.countdownTimer) {
+        clearInterval(this.countdownTimer)
+        this.countdownTimer = null
+      }
+    },
+    
+    // 更新所有待支付订单的倒计时
+    updateOrderCountdown() {
+      let hasUpdate = false
+      this.orderList.forEach(order => {
+        if (order.orderStatus === 0) {
+          const remainMs = this.calculateRemainTime(order)
+          if (remainMs > 0) {
+            order.countdownText = this.$utils.formatCountdown(remainMs)
+            order.isWarning = this.$utils.isExpiringSoon(remainMs)
+            order.remainMs = remainMs
+            hasUpdate = true
+            
+            // 检查是否需要弹出即将超时提醒
+            if (order.isWarning && !this.warnedOrders.has(order.id)) {
+              this.warnedOrders.add(order.id)
+              this.showExpiringToast(order)
+            }
+          } else {
+            order.countdownText = '00:00'
+            order.isWarning = false
+            order.remainMs = 0
+            hasUpdate = true
+          }
+        }
+      })
+      // 强制刷新视图（Vue响应式）
+      if (hasUpdate) {
+        this.$forceUpdate && this.$forceUpdate()
+      }
+    },
+    
+    // 计算剩余时间
+    calculateRemainTime(order) {
+      const expireTime = this.$utils.calculateExpireTime(
+        order.expireTime,
+        order.createTime,
+        15 // 默认15分钟过期
+      )
+      return expireTime - Date.now()
+    },
+    
+    // 显示即将超时提醒弹窗
+    showExpiringToast(order) {
+      uni.showModal({
+        title: '⚠️ 支付即将超时',
+        content: `您的订单（${order.orderNo}）将在 ${order.countdownText} 后自动取消，请尽快完成支付！`,
+        confirmText: '立即支付',
+        cancelText: '知道了',
+        success: (res) => {
+          if (res.confirm) {
+            this.toPay(order)
+          }
+        }
+      })
+    },
+    
+    // ========== 原有方法 ==========
+    
     // 返回上一页
     goBack() {
       if (this.navigating) return
@@ -335,7 +426,7 @@ export default {
             })
           }
           
-          // 处理图片URL
+          // 处理图片URL + 待支付订单倒计时
           list = list.map(order => {
             if (order.storeLogo) {
               order.storeLogo = this.$utils.processImageUrl(order.storeLogo)
@@ -352,6 +443,21 @@ export default {
                 return item
               })
             }
+            
+            // 初始化待支付订单的倒计时
+            if (order.orderStatus === 0) {
+              const remainMs = this.calculateRemainTime(order)
+              if (remainMs > 0) {
+                order.countdownText = this.$utils.formatCountdown(remainMs)
+                order.isWarning = this.$utils.isExpiringSoon(remainMs)
+                order.remainMs = remainMs
+              } else {
+                order.countdownText = '00:00'
+                order.isWarning = false
+                order.remainMs = 0
+              }
+            }
+            
             return order
           })
           
@@ -536,7 +642,8 @@ export default {
     // 检查登录状态
     checkLogin() {
       const token = this.$utils.getStorage('token')
-      if (!token || token === '{}') {
+      // 统一判断逻辑：token 必须是字符串且非空
+      if (!token || typeof token !== 'string' || token === '{}' || token.trim() === '') {
         uni.navigateTo({
           url: '/pages/user/login?redirect=' + encodeURIComponent('/pages/order/list')
         })
@@ -698,6 +805,37 @@ $primary: #ff6b35;
   margin: 0 20rpx 20rpx;
   padding: 30rpx;
   box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.06);
+
+  // 倒计时提示
+  .countdown-tips {
+    margin-bottom: 20rpx;
+    
+    .countdown-box {
+      display: flex;
+      align-items: center;
+      padding: 16rpx 20rpx;
+      background: linear-gradient(135deg, #FFF7E6 0%, #FFF3E0 100%);
+      border-radius: 12rpx;
+      border: 1rpx solid #FFE0B2;
+      
+      &.countdown-warning {
+        background: linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%);
+        border-color: #EF9A9A;
+        animation: pulse-warning 1.5s ease-in-out infinite;
+      }
+      
+      .countdown-icon {
+        font-size: 28rpx;
+        margin-right: 12rpx;
+      }
+      
+      .countdown-text {
+        font-size: 24rpx;
+        color: #E65100;
+        flex: 1;
+      }
+    }
+  }
 
   // 头部
   .order-header {
@@ -870,5 +1008,15 @@ $primary: #ff6b35;
   padding: 30rpx 0;
   font-size: 24rpx;
   color: #999;
+}
+
+// 即将超时脉冲动画
+@keyframes pulse-warning {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 </style>
