@@ -331,8 +331,9 @@ export default {
       
       // 直接返回，不做复杂判断
       uni.navigateBack({
+        success: () => {},
         fail: () => {
-          // 如果没有上一页，回到首页
+          // 如果返回失败，跳转到首页
           uni.switchTab({ url: '/pages/home/home' })
         },
         complete: () => {
@@ -603,13 +604,38 @@ export default {
     
     // 联系骑手
     contactRider(order) {
-      if (order.riderPhone) {
-        uni.makePhoneCall({
-          phoneNumber: order.riderPhone
-        })
-      } else {
-        uni.showToast({ title: '暂无骑手联系方式', icon: 'none' })
+      // if (!order.riderPhone) {
+      //   uni.showToast({ title: '暂无骑手联系方式', icon: 'none' })
+      //   return
+      // }
+      
+      uni.showActionSheet({
+        itemList: ['在线联系', '拨打电话'],
+        success: (res) => {
+          if (res.tapIndex === 0) {
+            this.chatWithRider(order)
+          } else if (res.tapIndex === 1) {
+            this.callRider(order.riderPhone)
+          }
+        }
+      })
+    },
+    
+    chatWithRider(order) {
+      if (!order.riderId) {
+        uni.showToast({ title: '骑手信息不存在', icon: 'none' })
+        return
       }
+      
+      uni.navigateTo({
+        url: `/pages/im/chat?userId=${order.riderId}&userName=${encodeURIComponent(order.riderName || '骑手')}&orderId=${order.id}`
+      })
+    },
+    
+    callRider(phone) {
+      uni.makePhoneCall({
+        phoneNumber: phone
+      })
     },
     
     // 查看配送信息
@@ -682,17 +708,18 @@ $primary: #ff6b35;
   box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
   
   .nav-back {
-    width: 88rpx;
-    height: 88rpx;
+    width: 60rpx;
+    height: 60rpx;
     display: flex;
     align-items: center;
     justify-content: center;
     
     .back-arrow {
       font-size: 48rpx;
-      color: #333;
-      font-weight: bold;
+      color: #000;
+      font-weight: 500;
       line-height: 1;
+      margin-left: -8rpx;
     }
     
     &:active {

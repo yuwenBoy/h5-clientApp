@@ -20,7 +20,7 @@ const user = [
 	}
 },{
 	path: '/pages/user/address/edit',
-	name: 'address',
+	name: 'addressEdit',
 	meta: {
 		title: '新增地址'
 	}

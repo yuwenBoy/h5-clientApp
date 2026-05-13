@@ -26,10 +26,10 @@
           <text class="cuIcon-deliver_fill rider-icon"></text>
           <text class="rider-title">配送信息</text>
         </view>
-        <view class="rider-info">
+        <view class="rider-info" @click="showRiderContact">
           <text class="rider-name">{{ order.riderName }}</text>
-          <text class="rider-phone" @click="callRider(order.riderPhone)">{{ order.riderPhone }}</text>
-          <text class="cuIcon-phone rider-phone-icon"></text>
+          <text class="rider-phone">{{ order.riderPhone }}</text>
+          <text class="cuIcon-right rider-arrow"></text>
         </view>
       </view>
 
@@ -452,6 +452,35 @@ export default {
     },
     
     // 拨打骑手电话
+    showRiderContact() {
+      if (!this.order.riderPhone) {
+        uni.showToast({ title: '骑手电话不存在', icon: 'none' })
+        return
+      }
+      
+      uni.showActionSheet({
+        itemList: ['在线联系', '拨打电话'],
+        success: (res) => {
+          if (res.tapIndex === 0) {
+            this.chatWithRider()
+          } else if (res.tapIndex === 1) {
+            this.callRider(this.order.riderPhone)
+          }
+        }
+      })
+    },
+    
+    chatWithRider() {
+      if (!this.order.riderId) {
+        uni.showToast({ title: '骑手信息不存在', icon: 'none' })
+        return
+      }
+      
+      uni.navigateTo({
+        url: `/pages/im/chat?userId=${this.order.riderId}&userName=${encodeURIComponent(this.order.riderName)}&orderId=${this.orderId}`
+      })
+    },
+    
     callRider(phone) {
       if (!phone) return
       uni.makePhoneCall({
@@ -687,10 +716,9 @@ $primary: #ff6b35;
       font-size: 28rpx;
       color: #666;
     }
-    .rider-phone-icon {
-      font-size: 40rpx;
-      color: $primary;
-      padding: 16rpx;
+    .rider-arrow {
+      font-size: 32rpx;
+      color: #999;
     }
   }
 }

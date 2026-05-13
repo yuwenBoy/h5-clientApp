@@ -134,6 +134,12 @@
 			"style": {
 				"navigationBarTitleText": "消息"
 			}
+		},
+		{
+			"path": "pages/im/chat",
+			"style": {
+				"navigationStyle": "custom"
+			}
 		}, {
 			"path": "pages/user/bindPhone",
 			"style": {
@@ -141,6 +147,11 @@
 				"enablePullDownRefresh": false
 			}
 
+		}, {
+			"path": "pages/user/address",
+			"style": {
+				"navigationStyle": "custom"
+			}
 		}, {  
 			"path": "pages/home/storeDetail",
 			"style": {

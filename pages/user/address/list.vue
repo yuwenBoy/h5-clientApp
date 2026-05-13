@@ -2,11 +2,18 @@
   <view class="address-page" @click="closeAllSwipe">
     <!-- 顶部导航栏 -->
     <view class="nav-bar">
-      <view class="nav-back" @click.stop="goBack">
-        <uni-icons type="left" size="24" color="#333"></uni-icons>
+      <view class="nav-left">
+        <view class="nav-back" @click.stop="goBack">
+          <image class="back-icon" src="/static/img/back-icon.png" mode="widthFix"></image>
+        </view>
+        <text class="nav-title">收货地址</text>
       </view>
-      <text class="nav-title">我的地址</text>
-      <view class="nav-right"></view>
+      <view class="nav-right">
+        <text class="nav-action manage" @click="toggleManage">
+          {{ isManageMode ? '退出管理' : '管理' }}
+        </text>
+        <text class="nav-action add" v-if="!isManageMode" @click="goAddAddress">新增地址</text>
+      </view>
     </view>
 
     <!-- 地址列表 -->
@@ -41,26 +48,31 @@
           </view>
           
           <!-- 地址内容层 - 在上层，可滑动 -->
-          <view 
-            class="card-content"
+          <view class="card-content"
             @touchstart="touchStart($event, index)"
             @touchmove="touchMove($event, index)"
             @touchend="touchEnd($event, index)"
-            @click="selectAddress(item)"
+            @click="handleCardClick(item)"
             :style="{ transform: `translateX(${item.translateX || 0}px)` }"
           >
+            <!-- 管理模式选择框 -->
+            <view class="select-checkbox" v-if="isManageMode" @click.stop="toggleSelect(item)">
+              <view class="checkbox" :class="{ 'checked': selectedIds.includes(item.id) }">
+                <text class="check-icon" v-if="selectedIds.includes(item.id)">✓</text>
+              </view>
+            </view>
+            
             <view class="card-main">
+              <!-- 地址（第一行，大字体） -->
+              <view class="address-row">
+                <text class="address-text">{{ item.province }}{{ item.city }}{{ item.area }}{{ item.detailAddress }}</text>
+              </view>
+              
+              <!-- 姓名+电话（第二行） -->
               <view class="user-row">
                 <text class="user-name">{{ item.receiver }}</text>
                 <text class="user-phone">{{ item.phone }}</text>
-                <view class="default-badge" v-if="item.isDefault">默认</view>
-              </view>
-              
-              <view class="address-row">
-                <view class="location-icon">
-                  <uni-icons type="location-filled" size="16" color="#ff6b35"></uni-icons>
-                </view>
-                <text class="address-text">{{ item.province }} {{ item.city }} {{ item.area }} {{ item.detailAddress }}</text>
+                <text class="default-badge" v-if="item.isDefault">默认</text>
               </view>
             </view>
             
@@ -89,13 +101,18 @@
       </view>
     </view>
 
-    <!-- 底部添加按钮 -->
-    <view class="bottom-bar" v-if="addressList.length">
-      <view class="add-btn" @click="goAddAddress">
-        <view class="add-icon-wrapper">
-          <uni-icons type="plusempty" size="24" color="#fff"></uni-icons>
+    <!-- 底部操作栏（仅管理模式显示） -->
+    <view class="bottom-bar" v-if="isManageMode">
+      <view class="manage-bar">
+        <view class="select-all" @click="toggleSelectAll">
+          <view class="checkbox" :class="{ 'checked': selectedIds.length === addressList.length && addressList.length > 0 }">
+            <text class="check-icon" v-if="selectedIds.length === addressList.length && addressList.length > 0">✓</text>
+          </view>
+          <text class="select-text">{{ selectedIds.length === addressList.length && addressList.length > 0 ? '取消全选' : '全选' }}</text>
         </view>
-        <text class="add-btn-text">添加新地址</text>
+        <view class="delete-btn" :class="{ 'disabled': selectedIds.length === 0 }" @click="batchDelete">
+          <text class="delete-text">删除{{ selectedIds.length > 1 ? '(' + selectedIds.length + ')' : '' }}</text>
+        </view>
       </view>
     </view>
   </view>
@@ -111,7 +128,9 @@ export default {
       startX: 0,
       startY: 0,
       moveX: 0,
-      slideBtnWidth: 120 // 每个按钮宽度(rpx)
+      slideBtnWidth: 120, // 每个按钮宽度(rpx)
+      isManageMode: false, // 管理模式
+      selectedIds: [] // 选中的地址ID列表
     };
   },
   computed: {
@@ -244,6 +263,17 @@ export default {
       }
     },
 
+    // 处理卡片点击
+    handleCardClick(item) {
+      if (this.isManageMode) {
+        // 管理模式下点击卡片切换选中状态
+        this.toggleSelect(item)
+      } else {
+        // 非管理模式下正常选择地址
+        this.selectAddress(item)
+      }
+    },
+
     async getAddressList() {
       try {
         const res = await this.$request.post(this.$apis.user.getAddressList);
@@ -260,6 +290,68 @@ export default {
       uni.navigateTo({
         url: '/pages/user/address/edit'
       });
+    },
+
+    // 切换管理模式
+    toggleManage() {
+      this.isManageMode = !this.isManageMode
+      if (!this.isManageMode) {
+        // 退出管理模式时清空选中状态
+        this.selectedIds = []
+      }
+    },
+
+    // 切换单个地址选中状态
+    toggleSelect(item) {
+      if (!this.isManageMode) return
+      
+      const index = this.selectedIds.indexOf(item.id)
+      if (index > -1) {
+        this.selectedIds.splice(index, 1)
+      } else {
+        this.selectedIds.push(item.id)
+      }
+    },
+
+    // 全选/取消全选
+    toggleSelectAll() {
+      if (this.selectedIds.length === this.addressList.length) {
+        // 取消全选
+        this.selectedIds = []
+      } else {
+        // 全选
+        this.selectedIds = this.addressList.map(item => item.id)
+      }
+    },
+
+    // 批量删除选中的地址
+    batchDelete() {
+      if (this.selectedIds.length === 0) {
+        uni.showToast({ title: '请选择要删除的地址', icon: 'none' })
+        return
+      }
+      
+      uni.showModal({
+        title: '删除地址',
+        content: `确定删除选中的 ${this.selectedIds.length} 个地址吗？`,
+        confirmColor: '#ff6000',
+        success: async (res) => {
+          if (res.confirm) {
+            try {
+              // 批量删除
+              await this.$request.post(this.$apis.user.batchDeleteAddress || '/client/user/address/batchDelete', {
+                ids: this.selectedIds
+              })
+              this.$utils.toast('删除成功')
+              this.selectedIds = []
+              this.isManageMode = false
+              this.getAddressList()
+            } catch (error) {
+              this.$utils.toast('删除失败')
+            }
+          }
+        }
+      })
     },
 
     goEditAddress(item, index) {
@@ -353,22 +445,52 @@ export default {
   top: 0;
   z-index: 100;
 
+  .nav-left {
+    display: flex;
+    align-items: center;
+    gap: 20rpx;
+  }
+
   .nav-back {
     width: 60rpx;
     height: 60rpx;
     display: flex;
     align-items: center;
     justify-content: center;
+
+    .back-icon {
+      width: 36rpx;
+      height: 36rpx;
+    }
+
+    &:active {
+      opacity: 0.6;
+    }
   }
 
   .nav-title {
-    font-size: 36rpx;
-    font-weight: 600;
+    font-size: 34rpx;
+    font-weight: 500;
     color: #333;
   }
 
   .nav-right {
-    width: 60rpx;
+    display: flex;
+    align-items: center;
+    gap: 30rpx;
+
+    .nav-action {
+      font-size: 28rpx;
+
+      &.manage {
+        color: #666;
+      }
+
+      &.add {
+        color: #ff6000;
+        font-weight: 500;
+      }
+    }
   }
 }
 
@@ -380,20 +502,14 @@ export default {
 }
 
 .address-list {
-  padding: 20rpx;
+  padding: 0;
 
   .address-card {
     position: relative;
-    margin-bottom: 20rpx;
-    border-radius: 20rpx;
+    margin-bottom: 0;
+    border-radius: 0;
     overflow: hidden;
     background: transparent;
-
-    &.is-default {
-      .card-content {
-        border: 2rpx solid #ff6b35;
-      }
-    }
   }
 
   // 滑动操作按钮 - 固定在右侧，初始被内容层覆盖
@@ -442,10 +558,10 @@ export default {
     z-index: 2;
     width: 100%;
     background: #fff;
-    border-radius: 20rpx;
+    border-radius: 0;
     padding: 30rpx;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     min-width: 0;
     transition: transform 0.3s ease;
@@ -455,56 +571,49 @@ export default {
       min-width: 0;
     }
 
-    .user-row {
-      display: flex;
-      align-items: center;
-      gap: 16rpx;
-      margin-bottom: 16rpx;
-
-      .user-name {
-        font-size: 32rpx;
-        font-weight: 600;
-        color: #333;
-      }
-
-      .user-phone {
-        font-size: 28rpx;
-        color: #666;
-      }
-
-      .default-badge {
-        background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
-        color: #fff;
-        font-size: 20rpx;
-        padding: 4rpx 12rpx;
-        border-radius: 8rpx;
-      }
-    }
-
+    // 地址行（第一行，大字体）
     .address-row {
       display: flex;
       align-items: flex-start;
-      gap: 12rpx;
-
-      .location-icon {
-        width: 32rpx;
-        height: 32rpx;
-        background: #fff5f0;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-        margin-top: 2rpx;
-      }
+      justify-content: space-between;
+      margin-bottom: 12rpx;
 
       .address-text {
         flex: 1;
-        font-size: 28rpx;
-        color: #666;
+        font-size: 32rpx;
+        font-weight: 600;
+        color: #333;
         line-height: 1.5;
         word-break: break-all;
       }
+
+    }
+
+    // 用户信息行（第二行，小字体）
+    .user-row {
+      display: flex;
+      align-items: baseline;
+      gap: 16rpx;
+
+      .user-name {
+        font-size: 26rpx;
+        color: #666;
+      }
+
+      .user-phone {
+        font-size: 26rpx;
+        color: #666;
+      }
+			
+			.default-badge {
+			  background: #fff0e8;
+			  color: #ff6000;
+			  font-size: 22rpx;
+			  padding: 4rpx 12rpx;
+			  border-radius: 4rpx;
+			  margin-left: 16rpx;
+			  flex-shrink: 0;
+			}
     }
 
     .drag-hint {
@@ -583,7 +692,7 @@ export default {
   }
 }
 
-// 底部添加按钮
+// 底部操作栏
 .bottom-bar {
   position: fixed;
   bottom: 0;
@@ -592,35 +701,98 @@ export default {
   padding: 20rpx 40rpx calc(20rpx + env(safe-area-inset-bottom));
   background: #fff;
   box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
 
-  .add-btn {
-    height: 88rpx;
-    background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
-    border-radius: 44rpx;
+// 管理模式底部栏
+.manage-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+
+  .select-all {
     display: flex;
     align-items: center;
-    justify-content: center;
     gap: 12rpx;
-    box-shadow: 0 8rpx 24rpx rgba(255, 107, 53, 0.3);
 
-    &:active {
-      transform: scale(0.98);
-    }
-
-    .add-icon-wrapper {
+    .checkbox {
       width: 40rpx;
       height: 40rpx;
-      background: rgba(255, 255, 255, 0.3);
+      border: 2rpx solid #ddd;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
+
+      &.checked {
+        background: #ff6000;
+        border-color: #ff6000;
+      }
+
+      .check-icon {
+        font-size: 24rpx;
+        color: #fff;
+        font-weight: bold;
+        line-height: 1;
+      }
     }
 
-    .add-btn-text {
-      font-size: 32rpx;
+    .select-text {
+      font-size: 28rpx;
+      color: #666;
+    }
+  }
+
+  .delete-btn {
+    height: 72rpx;
+    padding: 0 40rpx;
+    background: #ff4d4f;
+    border-radius: 8rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &.disabled {
+      background: #ccc;
+    }
+
+    .delete-text {
+      font-size: 28rpx;
       color: #fff;
       font-weight: 500;
+    }
+  }
+}
+
+// 选择框
+.select-checkbox {
+  padding: 8rpx 20rpx 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+
+  .checkbox {
+    width: 40rpx;
+    height: 40rpx;
+    border: 2rpx solid #ddd;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &.checked {
+      background: #ff6000;
+      border-color: #ff6000;
+    }
+
+    .check-icon {
+      font-size: 24rpx;
+      color: #fff;
+      font-weight: bold;
+      line-height: 1;
     }
   }
 }

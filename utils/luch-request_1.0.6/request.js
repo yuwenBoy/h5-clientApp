@@ -148,12 +148,18 @@ export default class Request {
 		// #endif
 		options.getTask = options.getTask || this.config.getTask
 		// 1. 读取本地 token（优先用 options 中的自定义 token，没有则读缓存）
-		const token =  utils.getStorage('token')
-		console.log(token)
-		  // 2. 有 token 则添加 Authorization 头（支持临时禁用：options.custom.noToken = true）
-		if (token && !options.custom?.noToken) {
-		    options.header.Authorization = `${token}`
+		const token = utils.getStorage('token')
+		console.log('读取到的token:', token)
+		// 2. 有 token 则添加 Authorization 头（支持临时禁用：options.custom.noToken = true）
+		// 确保 header 是独立对象，避免污染全局配置
+		if (!options.header || options.header === this.config.header) {
+			options.header = { ...this.config.header }
 		}
+		if (token && !options.custom?.noToken) {
+			// 后端通常期望 Bearer token 格式
+			options.header.Authorization = token.startsWith('Bearer ') ? token : `Bearer ${token}`
+		}
+		console.log('请求header:', options.header)
 		return new Promise((resolve, reject) => {
 			let next = true
 			const cancel = (t = 'handle cancel', config = options) => {

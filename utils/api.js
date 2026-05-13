@@ -63,6 +63,20 @@ const pay = {
 const common = {
 	// 获取三级城市
 	chinaRegions:'/client/user/chinaRegions',
+	// IP定位
+	ipLocation:'/client/ip/ipLocation',
+}
+
+// 消息相关接口
+const message = {
+	// 获取消息列表
+	list:'/client/message/list',
+	// 获取聊天历史
+	history:'/client/message/history',
+	// 发送消息
+	send:'/client/message/send',
+	// 标记已读
+	markRead:'/client/message/markRead',
 }
 
 
@@ -73,4 +87,5 @@ export default ({
 	order,
 	pay,
 	common,
+	message,
 })
