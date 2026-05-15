@@ -142,6 +142,7 @@ export default {
   },
   onLoad(options) {
     this.fromOrder = options.from === 'order'
+    this.fromHome = options.from === 'home'
     // 检查登录状态
     if (!this.checkLogin()) return
     this.getAddressList();
@@ -157,7 +158,13 @@ export default {
     goBack() {
       const pages = getCurrentPages();
       if (pages.length > 1) {
-        uni.navigateBack();
+        uni.navigateBack({
+          success: () => {},
+          fail: () => {
+            // 处理 navigateBack 失败的情况
+            uni.switchTab({ url: '/pages/home/home' });
+          }
+        });
       } else {
         // 如果没有上一页，跳转到首页
         uni.switchTab({ url: '/pages/home/home' });
@@ -167,14 +174,19 @@ export default {
     // 关闭所有滑开的卡片
     closeAllSwipe(e) {
       // 如果点击的是卡片内容区域，不处理（让卡片的click事件处理）
-      if (e && e.target && e.target.closest) {
-        const cardContent = e.target.closest('.card-content');
-        if (cardContent) return;
+      if (e && e.target) {
+        let target = e.target;
+        while (target) {
+          if (target.classList && target.classList.contains('card-content')) {
+            return;
+          }
+          target = target.parentElement;
+        }
       }
       
       // 关闭所有卡片
       this.addressList.forEach((item, i) => {
-        if (item.translateX < 0) {
+        if (item.translateX && item.translateX < 0) {
           this.$set(this.addressList[i], 'translateX', 0);
         }
       });
@@ -189,8 +201,8 @@ export default {
       
       // 关闭其他已滑开的卡片
       this.addressList.forEach((item, i) => {
-        if (i !== index) {
-          item.translateX = 0
+        if (i !== index && item.translateX !== 0) {
+          this.$set(this.addressList[i], 'translateX', 0)
         }
       })
     },
@@ -252,12 +264,30 @@ export default {
         return
       }
       
-      // 从订单页进入时才选择地址
+      // 从订单页进入时选择地址
       if (this.fromOrder) {
         const pages = getCurrentPages()
         const prevPage = pages[pages.length - 2]
         if (prevPage && prevPage.$vm) {
           prevPage.$vm.selectedAddress = item
+        }
+        uni.navigateBack()
+      }
+      
+      // 从首页进入时选择地址，更新首页位置
+      if (this.fromHome) {
+        if (item.latitude && item.longitude) {
+          // 保存到缓存，供首页使用
+          uni.setStorageSync('locationInfo', {
+            name: item.detailAddress || item.address,
+            lat: parseFloat(item.latitude),
+            lng: parseFloat(item.longitude)
+          })
+          uni.setStorageSync('lastLocation', {
+            lat: parseFloat(item.latitude),
+            lng: parseFloat(item.longitude)
+          })
+          uni.showToast({ title: '已切换收货地址', icon: 'success' })
         }
         uni.navigateBack()
       }
@@ -497,7 +527,7 @@ export default {
 // 地址列表
 .address-scroll {
   &.has-list {
-    height: calc(100vh - 200rpx - var(--status-bar-height));
+    max-height: calc(100vh - 200rpx - var(--status-bar-height));
   }
 }
 

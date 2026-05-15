@@ -7,6 +7,13 @@ const home =[{
 		hideLoading: true
 	},
 },{
+	path:'/pages/home/city',
+	name:'city',
+	meta: {
+		title: '选择城市',
+		hideLoading: true
+	},
+},{
 	path:'/pages/home/category',
 	name:'category',
 	meta: {

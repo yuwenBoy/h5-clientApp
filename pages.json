@@ -92,21 +92,13 @@
 			"style": {
 				"navigationBarTitleText": "商品详情"
 			}
-		}, {
-			"path": "pages/user/about",
-			"style": {
-				"navigationStyle": "custom",
-				"disableScroll": true,
-				"app-plus": {
-					"bounce": "none"
-				},
-				"mp-alipay": {
-					"allowsBounceVertical": "NO"
-				}
-			}
-
-		}, {
+		},{
 			"path": "pages/user/address/list",
+			"style": {
+				"navigationStyle": "custom"
+			}
+		}, {
+			"path": "pages/user/address/select",
 			"style": {
 				"navigationStyle": "custom"
 			}

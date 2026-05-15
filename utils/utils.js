@@ -325,6 +325,71 @@ let loginOut = function() {
 	removeStorage('mix')
 }
 
+// ==================== 定位相关工具 ====================
+
+// 默认定位坐标（北京）
+const DEFAULT_LAT = 39.9042
+const DEFAULT_LNG = 116.4074
+
+// 模拟定位数据（用于测试）
+const MOCK_LOCATIONS = [
+  { lat: 39.9042, lng: 116.4074, name: '北京市朝阳区' },
+  { lat: 31.2304, lng: 121.4737, name: '上海市黄浦区' },
+  { lat: 23.1291, lng: 113.2644, name: '广州市天河区' },
+  { lat: 22.5431, lng: 114.0579, name: '深圳市福田区' }
+]
+
+// 检查是否是安全源（HTTPS或localhost）
+let isSecureOrigin = function() {
+  // #ifdef H5
+  const hostname = window.location.hostname
+  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.includes('192.168.')
+  const isHttps = window.location.protocol === 'https:'
+  return isLocalhost || isHttps
+  // #endif
+  // #ifndef H5
+  return true
+  // #endif
+}
+
+// 获取GPS定位
+let getGpsLocation = function(callback) {
+  uni.getLocation({
+    type: 'gcj02',
+    success: (res) => {
+      callback(null, {
+        lat: res.latitude,
+        lng: res.longitude
+      })
+    },
+    fail: (err) => {
+      console.error('GPS定位失败:', err)
+      callback(err, null)
+    }
+  })
+}
+
+// 使用模拟定位（用于测试或定位失败时）
+let useMockLocation = function() {
+  const randomIndex = Math.floor(Math.random() * MOCK_LOCATIONS.length)
+  return MOCK_LOCATIONS[randomIndex]
+}
+
+// 获取当前位置信息（封装了多种定位方式）
+let getCurrentLocation = function(callback) {
+  // 先尝试GPS定位
+  getGpsLocation((gpsErr, gpsData) => {
+    if (gpsData) {
+      callback(null, gpsData)
+      return
+    }
+    
+    // GPS失败，使用模拟定位
+    const mockData = useMockLocation()
+    callback(null, mockData)
+  })
+}
+
 export default {
 	loginOut,
 	goLogin,
@@ -354,6 +419,13 @@ export default {
 	getNetworkErrorType,
 	showNetworkError,
 	handleRequestError,
+	// 定位工具
+	isSecureOrigin,
+	getGpsLocation,
+	useMockLocation,
+	getCurrentLocation,
+	DEFAULT_LAT,
+	DEFAULT_LNG
 }
 	
 	

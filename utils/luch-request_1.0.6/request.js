@@ -159,7 +159,6 @@ export default class Request {
 			// 后端通常期望 Bearer token 格式
 			options.header.Authorization = token.startsWith('Bearer ') ? token : `Bearer ${token}`
 		}
-		console.log('请求header:', options.header)
 		return new Promise((resolve, reject) => {
 			let next = true
 			const cancel = (t = 'handle cancel', config = options) => {

@@ -65,6 +65,8 @@ const common = {
 	chinaRegions:'/client/user/chinaRegions',
 	// IP定位
 	ipLocation:'/client/ip/ipLocation',
+	// 搜索地址
+	searchAddress:'/client/ip/searchAddress' 
 }
 
 // 消息相关接口

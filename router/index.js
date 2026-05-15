@@ -18,6 +18,10 @@ router.beforeEach((to,from,next)=>{
  		utils.setStorage('goodsQuery', to.query)
  		// #ifdef H5
  		utils.goLogin()
+ 		next(false)
+ 		// #endif
+ 		// #ifndef H5
+ 		next(false)
  		// #endif
  	} else {
  		next()

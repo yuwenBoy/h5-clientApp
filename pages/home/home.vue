@@ -1,7 +1,6 @@
 <template>
  	<view class="home-page">
  		<home-skeleton v-if="pageLoading" />
- 		
  		<template v-else>
  			<view class="search-bar-sticky">
  				<view class="search-box" @click="toSearchPage">
@@ -9,83 +8,86 @@
  					<text class="placeholder">搜索商品</text>
  				</view>
  			</view>
- 
- 			<view class="location-bar" @click="chooseLocation">
-				<uni-icons type="location-filled" size="16" color="#333" />
-				<text class="location-text" :class="{'location-loading': isLocating}">
-					{{ currentLocation || '定位中…' }}
-				</text>
-				<view class="refresh-btn" v-if="isLocating">
-					<view class="refresh-spinner"></view>
-				</view>
-				<uni-icons v-else type="right" size="14" color="#999" />
-			</view>
- 
- 			<swiper class="banner-swiper" :indicator-dots="true" :autoplay="true" :interval="3000">
- 				<swiper-item v-for="(item, index) in bannerList" :key="index">
- 					<image class="banner-img" :src="item.image" mode="aspectFill" />
- 				</swiper-item>
- 			</swiper>
- 
- 			<scroll-view class="category-scroll" scroll-x="true" scroll-with-animation>
- 				<view class="category-nav">
- 					<view class="category-item" v-for="(item, index) in categoryList" :key="index" @click="categoryClick(item)">
- 						<image class="category-icon" :src="item.icon" mode="aspectFill" />
- 						<text class="category-name">{{ item.name }}</text>
- 					</view>
- 				</view>
- 			</scroll-view>
+ 			<mescroll-uni ref="mescrollRef" @init="mescrollInit" @down="downCallback" @up="upCallback" :top="'auto'"
+ 				:height="'auto'" :fixed="false">
+ 				<view class="scroll-content">
+ 					<view class="location-bar" :class="{ 'locating': isLocating }" @click="chooseLocation">
+						<image class="location-icon" src="/static/img/local-icon.png" mode="widthFix" />
+						<view class="location-content">
+							<text class="location-text">{{ currentLocation || '定位中…' }}</text>
+							<view class="location-arrow">
+								<view class="refresh-btn" v-if="isLocating">
+									<view class="refresh-spinner"></view>
+								</view>
+								<image v-else class="arrow-icon" src="/static/img/local-select-icon.png" mode="widthFix" />
+							</view>
+						</view>
+					</view>
+
+ 					<swiper class="banner-swiper" :indicator-dots="true" :autoplay="true" :interval="3000">
+ 						<swiper-item v-for="(item, index) in bannerList" :key="index">
+ 							<image class="banner-img" :src="item.image" mode="aspectFill" />
+ 						</swiper-item>
+ 					</swiper>
+
+ 					<scroll-view class="category-scroll" scroll-x="true" scroll-with-animation>
+ 						<view class="category-nav">
+ 							<view class="category-item" v-for="(item, index) in categoryList" :key="index" @click="categoryClick(item)">
+								<image class="category-icon" :src="item.icon" mode="aspectFill" />
+								<text class="category-name">{{ item.name }}</text>
+							</view>
+						</view>
+					</scroll-view>
  			
- 			<view class="store-section">
- 				<view class="section-title">附近商家</view>
- 				<view class="store-list-wrapper">
- 					<mescroll-uni ref="mescrollRef" @init="mescrollInit" @down="downCallback" @up="upCallback" :top="'auto'"
- 						:height="'auto'" :fixed="false">
- 						<view class="store-list" v-if="storeList.length > 0">
- 							<view class="store-item" v-for="(store, index) in storeList" :key="store.id" @click="toStoreDetail(store)">
- 								<image class="store-image"
- 							:src="(store.avatarImg ? $utils.processImageUrl(store.avatarImg) : $utils.processImageUrl('http://image.jxxqz.com:3001/fc57d5031095495fae039977ec738d01.jpeg'))"
- 							mode="aspectFill" />
- 								<view class="store-info">
- 									<view class="store-header">
- 										<text class="store-name">{{ store.storeName }}</text>
- 										<text class="store-distance">{{ store.distanceText || '未知距离' }}</text>
- 									</view>
- 									<view class="store-status">
- 										<view class="store-status-rest" v-if="store.business_status==='休息中'">
- 											<text class="text">休息中</text>
- 											<text class="time">{{store.next_open_time}}</text>
+ 					<view class="store-section">
+ 						<view class="section-title">附近商家</view>
+ 						<view class="store-list-wrapper">
+ 							<view class="store-list" v-if="storeList.length > 0">
+ 								<view class="store-item" v-for="(store, index) in storeList" :key="store.id" @click="toStoreDetail(store)">
+ 									<image class="store-image"
+ 								:src="(store.avatarImg ? $utils.processImageUrl(store.avatarImg) : $utils.processImageUrl('http://image.jxxqz.com:3001/fc57d5031095495fae039977ec738d01.jpeg'))"
+ 								mode="aspectFill" />
+ 									<view class="store-info">
+ 										<view class="store-header">
+ 											<text class="store-name">{{ store.storeName }}</text>
+ 											<text class="store-distance">{{ store.distanceText || '未知距离' }}</text>
  										</view>
- 										<view class="store-status-open" v-else-if="store.business_status==='营业中'">
- 											<text class="text">营业中</text>
- 											<text class="time">{{store.today_hours}}</text>
+ 										<view class="store-status">
+ 											<view class="store-status-rest" v-if="store.business_status==='休息中'">
+ 												<text class="text">休息中</text>
+ 												<text class="time">{{store.next_open_time}}</text>
+ 											</view>
+ 											<view class="store-status-open" v-else-if="store.business_status==='营业中'">
+ 												<text class="text">营业中</text>
+ 												<text class="time">{{store.today_hours}}</text>
+ 											</view>
+ 											<view class="store-status-rest" v-else-if="store.business_status==='已打烊'">
+ 												<text class="text">已打烊</text>
+ 												<text class="time">{{store.next_open_time}}</text>
+ 											</view>
+ 											<view class="store-status-none" v-else>
+ 												<text class="text">{{store.business_status}}</text>
+ 											</view>
  										</view>
- 										<view class="store-status-rest" v-else-if="store.business_status==='已打烊'">
- 											<text class="text">已打烊</text>
- 											<text class="time">{{store.next_open_time}}</text>
+ 										<view class="store-meta">
+ 											<text class="rating">⭐ {{ store.rating || 5.0 }}</text>
+ 											<text class="sales">月售{{ store.monthly_sales || 88 }}</text>
  										</view>
- 										<view class="store-status-none" v-else>
- 											<text class="text">{{store.business_status}}</text>
+ 										<view class="store-delivery">
+ 											<text class="delivery-fee">配送 ¥{{ store.delivery_fee || 0 }}</text>
+ 											<text class="min-order">起送 ¥{{ store.min_order_amount || 20 }}</text>
  										</view>
- 									</view>
- 									<view class="store-meta">
- 										<text class="rating">⭐ {{ store.rating || 5.0 }}</text>
- 										<text class="sales">月售{{ store.monthly_sales || 88 }}</text>
- 									</view>
- 									<view class="store-delivery">
- 										<text class="delivery-fee">配送 ¥{{ store.delivery_fee || 0 }}</text>
- 										<text class="min-order">起送 ¥{{ store.min_order_amount || 20 }}</text>
  									</view>
  								</view>
  							</view>
+ 							<view class="empty-box" v-if="storeList.length === 0 && isLoaded">
+ 								<image class="empty-icon" src="/static/images/empty.png" />
+ 								<text class="empty-text">暂无优质商家</text>
+ 							</view>
  						</view>
- 						<view class="empty-box" v-if="storeList.length === 0 && isLoaded">
- 							<image class="empty-icon" src="/static/images/empty.png" />
- 							<text class="empty-text">暂无优质商家</text>
- 						</view>
- 					</mescroll-uni>
+ 					</view>
  				</view>
- 			</view>
+ 			</mescroll-uni>
  		</template>
  	</view>
  </template>
@@ -152,6 +154,8 @@ const MOCK_LOCATIONS = [
 	},
  	onShow() {
  		if (this.storeList.length > 0) this.pageLoading = false;
+ 		// 每次页面显示时，检查位置是否变化，如果变化则刷新门店列表
+ 		this.refreshIfLocationChanged();
  	},
  	methods: {
 			// 检查默认收货地址，优先使用
@@ -360,36 +364,17 @@ const MOCK_LOCATIONS = [
 			return address.trim();
 		},
  		
- 		// 点击定位栏，弹出菜单
+ 		// 点击定位栏
 		chooseLocation() {
-			const addressList = uni.getStorageSync('addressList') || [];
-			const hasAddress = addressList.length > 0;
-			
-			const menuItems = [
-				'🔄 获取当前GPS位置',
-				'🗺️ 手动选择位置'
-			];
-			
-			if (hasAddress) {
-				menuItems.unshift('📦 使用收货地址');
+			// 定位中时不允许跳转，提示用户等待定位完成
+			if (this.isLocating) {
+				uni.showToast({ title: '正在定位中，请稍候', icon: 'none' });
+				return;
 			}
-			
-			uni.showActionSheet({
-				itemList: menuItems,
-				success: (res) => {
-					if (hasAddress && res.tapIndex === 0) {
-						this.useAddressLocation();
-					} else if (hasAddress && res.tapIndex === 1) {
-						this.getGpsLocation();
-					} else if (hasAddress && res.tapIndex === 2) {
-						this.manualChooseLocation();
-					} else if (!hasAddress && res.tapIndex === 0) {
-						this.getGpsLocation();
-					} else if (!hasAddress && res.tapIndex === 1) {
-						this.manualChooseLocation();
-					}
-				}
-			});
+			// 定位完成后跳转到收货地址选择页面
+			this.$Router.push({
+				path: '/pages/user/address/select'
+			})
 		},
 		
 		// 使用收货地址定位
@@ -494,11 +479,16 @@ const MOCK_LOCATIONS = [
  		
  		// 保存位置，刷新列表
  		setLocation(lat, lng, name) {
+ 			// 记录旧位置用于对比
+ 			const oldLat = this.latitude;
+ 			const oldLng = this.longitude;
+ 			
  			this.latitude = lat;
  			this.longitude = lng;
  			this.currentLocation = name;
  			this.isLocating = false; // 关闭loading状态
  			uni.setStorageSync("locationInfo", { name, lat, lng });
+ 			uni.setStorageSync("lastLocation", { lat, lng });
  			// 刷新门店列表
  			if (this.mescroll) {
  				this.mescroll.resetUpScroll();
@@ -509,6 +499,29 @@ const MOCK_LOCATIONS = [
  						this.mescroll.resetUpScroll();
  					}
  				});
+ 			}
+ 		},
+ 		
+ 		// 检查位置是否变化，如果变化则刷新
+		refreshIfLocationChanged() {
+			try {
+				const lastLocation = uni.getStorageSync('lastLocation');
+				const currentLocation = uni.getStorageSync('locationInfo');
+				
+				if (lastLocation && currentLocation) {
+					// 比较名称或经纬度是否有变化
+					const locationChanged = 
+						lastLocation.name !== currentLocation.name ||
+						lastLocation.lat !== currentLocation.lat || 
+						lastLocation.lng !== currentLocation.lng;
+					
+					if (locationChanged && this.mescroll) {
+						this.mescroll.resetUpScroll();
+						uni.setStorageSync('lastLocation', currentLocation);
+ 					}
+ 				}
+ 			} catch (error) {
+ 				console.error('检查位置变化失败:', error);
  			}
  		},
  		
@@ -557,15 +570,15 @@ const MOCK_LOCATIONS = [
  		position: sticky;
  		top: 0;
  		z-index: 999;
- 		padding: 15rpx 30rpx;
+ 		padding: 15rpx 20rpx;
  		background: #fff;
  		.search-box {
  			display: flex;
  			align-items: center;
  			height: 64rpx;
  			padding: 0 24rpx;
- 			background: #f2f2f2;
- 			border-radius: 32rpx;
+ 			border-radius: 8rpx;
+			border: 1px solid #ff6000;;
  			.placeholder {
  				margin-left: 12rpx;
  				font-size: 28rpx;
@@ -573,29 +586,57 @@ const MOCK_LOCATIONS = [
  			}
  		}
  	}
+ 	.scroll-content {
+ 		background: #f5f5f5;
+ 	}
  	.location-bar {
  		display: flex;
  		align-items: center;
- 		padding: 16rpx 30rpx;
+ 		padding: 20rpx;
  		background: #fff;
  		border-bottom: 1rpx solid #f0f0f0;
- 		.location-text {
+ 		transition: opacity 0.3s;
+ 		
+ 		&.locating {
+ 			pointer-events: none;
+ 			opacity: 0.7;
+ 		}
+ 		
+ 		.location-icon {
+ 			width: 28rpx;
+ 			height: 28rpx;
+ 		}
+ 		.location-content {
  			flex: 1;
- 			margin-left: 10rpx;
- 			font-size: 28rpx;
+ 			display: flex;
+ 			align-items: center;
+ 			margin-left: 12rpx;
+ 		}
+ 		.location-text {
+ 			font-size: 30rpx;
  			color: #333;
  			font-weight: 500;
  			white-space: nowrap;
  			overflow: hidden;
  			text-overflow: ellipsis;
- 			&.location-loading {
- 				color: #333;
- 			}
+ 		}
+ 		.location-arrow {
+ 			margin-left: 8rpx;
+ 			display: flex;
+ 			align-items: center;
+ 		}
+ 		.arrow-icon {
+ 			width: 24rpx;
+ 			height: 24rpx;
+ 		}
+ 		.location-right {
+ 			display: flex;
+ 			align-items: center;
+ 			margin-left: 12rpx;
  		}
  		.refresh-btn {
  			width: 32rpx;
  			height: 32rpx;
- 			margin-left: 10rpx;
  			.refresh-spinner {
  				width: 100%;
  				height: 100%;
@@ -699,13 +740,13 @@ const MOCK_LOCATIONS = [
  		}
  		.store-meta {
  			margin-top: 10rpx;
- 			.rating { color: #ff6000; font-size: 24rpx; }
+ 			.rating { color: #333; font-size: 24rpx; }
  			.sales { margin-left: 20rpx; color: #666; font-size: 24rpx; }
  		}
  		.store-delivery {
  			margin-top: 10rpx;
  			font-size: 24rpx;
- 			.delivery-fee { color: #ff6000; margin-right: 20rpx; }
+ 			.delivery-fee { color: #666; margin-right: 20rpx; }
  			.min-order { color: #666; }
  		}
  	}

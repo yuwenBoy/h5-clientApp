@@ -6,10 +6,10 @@ const user = [
 		title: '我的'
 	}
 },{
-	path: '/pages/user/about',
-	name: 'about',
+	path: '/pages/user/address/select',
+	name: 'selectAddress',
 	meta: {
-		title: '关于号家军'
+		title: '选择收货地址'
 	}
 },{
 	path: '/pages/user/address/list',
