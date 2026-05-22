@@ -29,12 +29,12 @@
 			</view>
 
 			<!-- 当前定位 -->
-			<view class="location-section" v-if="currentLocation && !hasSearchKeyword">
+			<view class="location-section" v-if="!hasSearchKeyword">
 				<view class="section-label">当前定位</view>
 				<view class="location-item" @click="selectLocation">
 					<image class="location-icon" src="/static/img/local-icon.png" mode="widthFix" />
 					<text class="location-name">{{ currentLocation }}</text>
-					<text class="re-locate" @click.stop="reLocate">重新定位</text>
+					<text class="re-locate" @click.stop="reLocate">{{ currentLocation === '定位中...' ? '' : '重新定位' }}</text>
 				</view>
 			</view>
 
@@ -45,7 +45,7 @@
 					<view class="section-label">收货地址</view>
 					<view class="address-list">
 						<view class="address-card" v-for="(item, index) in addressList" :key="item.id || index"
-							:class="{ 'is-default': item.isDefault, 'is-open': item.translateX < -50 }">
+							:class="{ 'is-default': item.isDefault, 'is-open': item.translateX < -50, 'is-selected': item.isSelected }">
 							<!-- 操作按钮层 - 在底层 -->
 							<view class="slide-actions">
 								<view class="slide-btn default" @click="setDefaultAddress(item.id, index)" v-if="!item.isDefault">
@@ -67,17 +67,18 @@
 								@touchend="touchEnd($event, index)" @click="handleCardClick(item)"
 								:style="{ transform: `translateX(${item.translateX || 0}px)` }">
 								<view class="card-main">
-									<!-- 地址（第一行，大字体） -->
-									<view class="address-row">
-										<text
-											class="address-text">{{ item.province }}{{ item.city }}{{ item.area }}{{ item.detailAddress }}</text>
+									<view class="select-check" v-if="item.isSelected">
+										<uni-icons type="checkmarkempty" size="22" color="#ff6200" />
 									</view>
-
-									<!-- 姓名+电话（第二行） -->
-									<view class="user-row">
-										<text class="user-name">{{ item.receiver }}</text>
-										<text class="user-phone">{{ item.phone }}</text>
-										<text class="default-badge" v-if="item.isDefault">默认</text>
+									<view class="card-body">
+										<view class="address-row">
+											<text class="address-text">{{ formatAddressText(item) }}</text>
+										</view>
+										<view class="user-row">
+											<text class="user-name">{{ item.receiver }}</text>
+											<text class="user-phone">{{ item.phone }}</text>
+											<text class="default-badge" v-if="item.isDefault">默认</text>
+										</view>
 									</view>
 								</view>
 
@@ -100,8 +101,7 @@
 				<view class="card-main">
 					<!-- 地址（第一行，大字体） -->
 					<view class="address-row">
-						<text
-							class="address-text">{{ defaultAddress.province }}{{ defaultAddress.city }}{{ defaultAddress.area }}{{ defaultAddress.detailAddress }}</text>
+						<text class="address-text">{{ formatAddressText(defaultAddress) }}</text>
 					</view>
 
 					<!-- 姓名+电话（第二行） -->
@@ -126,6 +126,7 @@
 							</view>
 							<text class="search-address">{{ item.cityname }}{{ item.adname }}{{ item.address }}</text>
 						</view>
+						<text class="search-distance" v-if="item.distanceText">{{ item.distanceText }}</text>
 					</view>
 
 					<!-- 查看更多地址 -->
@@ -157,13 +158,18 @@
 </template>
 
 <script>
+	import { calcDistanceMeters, formatDistanceText, isSameCoordinate } from '@/utils/geo.js';
+	import { formatFullAddress, parseAddressCoords } from '@/utils/address.js';
+
 	export default {
 		data() {
 			return {
-				currentCity: '北京市',
+				currentCity: '定位中...',
 				searchKeyword: '',
 				searchResults: [],
-				currentLocation: '',
+				currentLocation: '定位中...',
+				currentLat: null,
+				currentLng: null,
 				addressList: [],
 				startX: 0,
 				startY: 0,
@@ -183,19 +189,117 @@
 		},
 
 		onLoad() {
+			// 先检查用户是否登录
+			const token = this.$utils.getStorage('token');
+			if (!token) {
+				// 未登录，跳转到登录页面
+				uni.redirectTo({
+					url: '/pages/user/login'
+				});
+				return;
+			}
 			this.loadAddressList();
 			this.getCurrentLocation();
 		},
 
 		onShow() {
 			this.loadAddressList();
+			const savedCity = uni.getStorageSync('currentCity');
+			if (savedCity) {
+				this.currentCity = savedCity;
+			}
+			if (this.searchKeyword && this.searchResults.length) {
+				this.searchResults = this.attachDistanceToResults(this.searchResults);
+			}
 		},
 
 		methods: {
+			formatAddressText(item) {
+				return formatFullAddress(item);
+			},
+
 			goBack() {
-				uni.switchTab({
-					url: '/pages/home/home'
+				const pages = getCurrentPages();
+				if (pages.length > 1) {
+					uni.navigateBack({ delta: 1 });
+				} else {
+					uni.switchTab({ url: '/pages/home/home' });
+				}
+			},
+
+			/** 保存位置并返回首页刷新门店 */
+			saveLocationAndBack(payload) {
+				const { name, lat, lng, addressId } = payload;
+				const location = {
+					name,
+					lat: lat != null ? parseFloat(lat) : null,
+					lng: lng != null ? parseFloat(lng) : null,
+					addressId: addressId || null,
+					source: 'user'
+				};
+				uni.setStorageSync('locationInfo', location);
+				if (location.lat != null && location.lng != null) {
+					uni.setStorageSync('lastLocation', {
+						lat: location.lat,
+						lng: location.lng,
+						name: location.name
+					});
+				}
+				// 通知首页强制按新坐标刷新附近商家（距离随位置变化）
+				uni.setStorageSync('homeNeedRefresh', true);
+				uni.showToast({ title: '已切换收货地址', icon: 'success', duration: 800 });
+				setTimeout(() => this.goBack(), 400);
+			},
+
+			markAndSortAddresses(list, lastLocation) {
+				if (!list || !list.length) return list;
+				const selectedId = lastLocation && lastLocation.addressId;
+				const marked = list.map((item) => {
+					let isSelected = false;
+					if (selectedId) {
+						isSelected = String(item.id) === String(selectedId);
+					} else if (
+						lastLocation &&
+						lastLocation.lat != null &&
+						lastLocation.lng != null &&
+						item.latitude &&
+						item.longitude
+					) {
+						isSelected = isSameCoordinate(
+							item.latitude,
+							item.longitude,
+							lastLocation.lat,
+							lastLocation.lng
+						);
+					}
+					return { ...item, isSelected };
 				});
+				marked.sort((a, b) => {
+					if (a.isSelected && !b.isSelected) return -1;
+					if (!a.isSelected && b.isSelected) return 1;
+					return 0;
+				});
+				return marked;
+			},
+
+			attachDistanceToResults(results) {
+				if (this.currentLat == null || this.currentLng == null) return results;
+				return results
+					.map((item) => {
+						const lat = parseFloat(item.lat);
+						const lng = parseFloat(item.lng);
+						const meters = calcDistanceMeters(this.currentLat, this.currentLng, lat, lng);
+						return {
+							...item,
+							distanceM: meters,
+							distanceText: meters != null ? formatDistanceText(meters) : ''
+						};
+					})
+					.sort((a, b) => {
+						const da = a.distanceM != null ? a.distanceM : 99999999;
+						const db = b.distanceM != null ? b.distanceM : 99999999;
+						return da - db;
+					});
 			},
 
 			closeAllSwipe() {
@@ -206,10 +310,11 @@
 				});
 				this.movingIndex = -1;
 			},
-
+      
+			// 选择城市
 			goCitySelect() {
-				uni.navigateTo({
-					url: '/pages/home/city'
+				this.$Router.push({
+					path: '/pages/home/city'
 				});
 			},
 
@@ -252,7 +357,7 @@
 								});
 							}
 						}
-						this.searchResults = results;
+						this.searchResults = this.attachDistanceToResults(results);
 					} else {
 						this.searchResults = [];
 					}
@@ -286,39 +391,23 @@
 			},
 
 			selectSearchResult(item) {
-				uni.setStorageSync('locationInfo', {
-					name: item.name + ' ' + item.address,
-					lat: parseFloat(item.lat),
-					lng: parseFloat(item.lng)
+				const name = [item.name, item.address].filter(Boolean).join(' ');
+				this.saveLocationAndBack({
+					name: name || item.name,
+					lat: item.lat,
+					lng: item.lng,
+					addressId: null
 				});
-				uni.setStorageSync('lastLocation', {
-					lat: parseFloat(item.lat),
-					lng: parseFloat(item.lng)
-				});
-				uni.showToast({
-					title: '已切换收货地址',
-					icon: 'success'
-				});
-				setTimeout(() => {
-					this.goBack();
-				}, 1500);
 			},
 
 			selectLocation() {
-				if (this.currentLocation) {
-					uni.setStorageSync('locationInfo', {
-						name: this.currentLocation,
-						lat: null,
-						lng: null
-					});
-					uni.showToast({
-						title: '已切换收货地址',
-						icon: 'success'
-					});
-					setTimeout(() => {
-						this.goBack();
-					}, 1500);
-				}
+				if (!this.currentLocation || this.currentLocation === '定位中...') return;
+				this.saveLocationAndBack({
+					name: this.currentLocation,
+					lat: this.currentLat,
+					lng: this.currentLng,
+					addressId: null
+				});
 			},
 
 			goMoreAddress() {
@@ -327,26 +416,55 @@
 			},
 
 			getCurrentLocation() {
+				this.currentLocation = '定位中...';
 				uni.getLocation({
 					type: 'gcj02',
 					success: (res) => {
-						this.$request.post(this.$apis.common.getAddressByLatLng, {
-							lat: res.latitude,
-							lng: res.longitude
-						}).then((res) => {
-							if (res.success) {
-								this.currentLocation = res.result.address;
-							}
-						}).catch(() => {
-							this.currentLocation = '获取定位失败';
-						});
+						this.currentLat = res.latitude;
+						this.currentLng = res.longitude;
+						this.getIpLocation(res.latitude, res.longitude);
 					},
 					fail: () => {
 						this.currentLocation = '获取定位失败';
+						this.currentLat = 39.924195;
+						this.currentLng = 116.603983;
+						this.getIpLocation(this.currentLat, this.currentLng);
 					}
 				});
 			},
-
+      getIpLocation(latitude, longitude) {
+				this.currentLat = latitude;
+				this.currentLng = longitude;
+				this.currentLocation = '定位中...';
+				this.$request.post(this.$apis.common.ipLocation, {
+					lat: latitude,
+					lng: longitude
+				}).then((res) => {
+					if (res.success && res.result) {
+						if (res.result.latitude != null) this.currentLat = parseFloat(res.result.latitude);
+						if (res.result.longitude != null) this.currentLng = parseFloat(res.result.longitude);
+						this.currentLocation = res.result.address || '定位成功';
+						// 提取城市信息（假设接口返回的 address 包含城市）
+						if (res.result.city) {
+							this.currentCity = res.result.city;
+						} else if (res.result.address) {
+							// 从完整地址中提取城市
+							const address = res.result.address;
+							const cityMatch = address.match(/[省市自治区]+[^省市区县]+[市区]/);
+							if (cityMatch) {
+								this.currentCity = cityMatch[0];
+							} else {
+								this.currentCity = '北京市';
+							}
+						}
+					} else {
+						this.currentLocation = '定位成功';
+					}
+				}).catch(() => {
+					this.currentLocation = '定位成功';
+					this.currentCity = '北京市';
+				});
+			},
 			reLocate() {
 				this.getCurrentLocation();
 			},
@@ -355,13 +473,27 @@
 				try {
 					const res = await this.$request.post(this.$apis.user.getAddressList);
 					if (res.success && res.result) {
-						this.addressList = res.result.map(item => ({
+						let addresses = res.result.map((item) => ({
 							...item,
-							translateX: 0
+							translateX: 0,
+							isSelected: false
 						}));
+						const lastLocation = uni.getStorageSync('locationInfo');
+						this.addressList = this.markAndSortAddresses(addresses, lastLocation);
+					} else if (res.code === 401 || res.message === '登录已失效') {
+						uni.clearStorageSync();
+						uni.redirectTo({
+							url: '/pages/user/login'
+						});
 					}
 				} catch (error) {
 					console.error('获取地址列表失败:', error);
+					if (error && (error.code === 401 || error.message === '登录已失效')) {
+						uni.clearStorageSync();
+						uni.redirectTo({
+							url: '/pages/user/login'
+						});
+					}
 					this.addressList = [];
 				}
 			},
@@ -434,43 +566,27 @@
 					return;
 				}
 
-				if (item.latitude && item.longitude) {
-					uni.setStorageSync('locationInfo', {
-						name: item.detailAddress || item.address,
-						lat: parseFloat(item.latitude),
-						lng: parseFloat(item.longitude)
+				this.addressList.forEach((addr) => {
+					this.$set(addr, 'isSelected', addr.id === item.id);
+				});
+
+				const locationName = formatFullAddress(item);
+				const coords = parseAddressCoords(item);
+
+				if (coords) {
+					this.saveLocationAndBack({
+						name: locationName,
+						lat: coords.lat,
+						lng: coords.lng,
+						addressId: item.id
 					});
-					uni.setStorageSync('lastLocation', {
-						lat: parseFloat(item.latitude),
-						lng: parseFloat(item.longitude)
-					});
-					uni.showToast({
-						title: '已切换收货地址',
-						icon: 'success'
-					});
-					setTimeout(() => {
-						const pages = getCurrentPages();
-						if (pages.length > 1) {
-							uni.navigateBack();
-						} else {
-							uni.switchTab({
-								url: '/pages/home/home'
-							});
-						}
-					}, 1500);
 				} else {
-					uni.setStorageSync('locationInfo', {
-						name: item.detailAddress || item.address,
+					this.saveLocationAndBack({
+						name: locationName || item.detailAddress,
 						lat: null,
-						lng: null
+						lng: null,
+						addressId: item.id
 					});
-					uni.showToast({
-						title: '已切换收货地址',
-						icon: 'success'
-					});
-					setTimeout(() => {
-						this.goBack();
-					}, 1500);
 				}
 			},
 
@@ -673,6 +789,7 @@
 				font-weight: 500;
 			}
 		}
+
 	}
 
 	.address-scroll {
@@ -758,35 +875,62 @@
 			.card-main {
 				flex: 1;
 				min-width: 0;
+				display: flex;
+				align-items: flex-start;
+				width: 100%;
+			}
+
+			.card-body {
+				flex: 1;
+				min-width: 0;
+			}
+			
+			.select-check {
+				margin-right: 16rpx;
+				margin-top: 6rpx;
+				flex-shrink: 0;
+				width: 40rpx;
+				display: flex;
+				align-items: flex-start;
+				justify-content: center;
+			}
+
+			&.is-selected .card-content {
+				background: #fff7f2;
 			}
 
 			.address-row {
+				width: 100%;
 				margin-bottom: 12rpx;
 			}
 
 			.address-text {
-				flex: 1;
 				font-size: 32rpx;
 				font-weight: 600;
 				color: #333;
 				line-height: 1.5;
 				word-break: break-all;
+				display: block;
+				width: 100%;
 			}
 
 			.user-row {
 				display: flex;
-				align-items: baseline;
-				gap: 16rpx;
+				align-items: center;
+				width: 100%;
+				gap: 12rpx;
 			}
 
 			.user-name {
 				font-size: 26rpx;
 				color: #666;
+				flex-shrink: 0;
 			}
 
 			.user-phone {
 				font-size: 26rpx;
 				color: #666;
+				flex-shrink: 0;
 			}
 
 			.default-badge {
@@ -833,38 +977,46 @@
 			color: #999;
 			word-break: break-all;
 		}
+		
 		.card-main {
 			flex: 1;
 			min-width: 0;
+			display: block;
+			width: 100%;
 		}
 		
 		.address-row {
+			width: 100%;
 			margin-bottom: 12rpx;
 		}
-		
+			
 		.address-text {
-			flex: 1;
 			font-size: 32rpx;
 			font-weight: 600;
 			color: #333;
 			line-height: 1.5;
 			word-break: break-all;
+			display: block;
+			width: 100%;
 		}
 		
 		.user-row {
 			display: flex;
-			align-items: baseline;
-			gap: 16rpx;
+			align-items: center;
+			width: 100%;
+			gap: 12rpx;
 		}
 		
 		.user-name {
 			font-size: 26rpx;
 			color: #666;
+			flex-shrink: 0;
 		}
 		
 		.user-phone {
 			font-size: 26rpx;
 			color: #666;
+			flex-shrink: 0;
 		}
 		
 		.default-badge {
@@ -875,11 +1027,6 @@
 			border-radius: 4rpx;
 			margin-left: 16rpx;
 			flex-shrink: 0;
-		}
-		
-		.drag-hint {
-			margin-left: 16rpx;
-			opacity: 0.5;
 		}
 	}
 
@@ -940,6 +1087,14 @@
 						color: #999;
 						word-break: break-all;
 					}
+				}
+
+				.search-distance {
+					flex-shrink: 0;
+					margin-left: 16rpx;
+					font-size: 24rpx;
+					color: #999;
+					white-space: nowrap;
 				}
 			}
 		}

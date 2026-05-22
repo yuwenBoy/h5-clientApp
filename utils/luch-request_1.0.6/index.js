@@ -9,8 +9,9 @@
  	test: 'yuwenboy.github.io/h5-clientProApp',
  }
  const API_URL = {
- 	develop: '192.168.4.63:9000/basic-api',
+ 	develop: '127.0.0.1:9000/basic-api',
  	test: '192.168.4.63:9000/basic-api',
+	pre:'nest-api-client-futa9plp0-test-client-app.vercel.app/basic-api'
  }  
  
  // 本地开发

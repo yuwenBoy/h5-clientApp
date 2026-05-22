@@ -1,6 +1,6 @@
 <template>
  	<view class="home-page">
- 		<home-skeleton v-if="pageLoading" />
+ 		<home-skeleton v-if="pageLoading || isLocating" />
  		<template v-else>
  			<view class="search-bar-sticky">
  				<view class="search-box" @click="toSearchPage">
@@ -9,7 +9,7 @@
  				</view>
  			</view>
  			<mescroll-uni ref="mescrollRef" @init="mescrollInit" @down="downCallback" @up="upCallback" :top="'auto'"
- 				:height="'auto'" :fixed="false">
+ 				:height="'auto'" :fixed="false" :auto="false">
  				<view class="scroll-content">
  					<view class="location-bar" :class="{ 'locating': isLocating }" @click="chooseLocation">
 						<image class="location-icon" src="/static/img/local-icon.png" mode="widthFix" />
@@ -95,69 +95,183 @@
  <script>
  import MescrollMixin from "@/components/mescroll-uni/mescroll-mixins.js";
  import HomeSkeleton from "@/components/skeleton-screen/home-skeleton.vue";
- 
  // 默认兜底坐标（北京天安门）
 const DEFAULT_LAT = 39.9042;
 const DEFAULT_LNG = 116.4074;
-
-// 模拟定位数据（用于测试）
-const MOCK_LOCATIONS = [
-	{ name: '北京市朝阳区望京SOHO T1', lat: 39.9962, lng: 116.4703 },
-	{ name: '北京市海淀区中关村软件园二期', lat: 39.9999, lng: 116.2963 },
-	{ name: '上海市浦东新区陆家嘴金融中心', lat: 31.2304, lng: 121.4737 },
-	{ name: '广州市天河区珠江新城高德置地广场', lat: 23.1291, lng: 113.3245 },
-	{ name: '深圳市南山区科技园南区深圳湾生态园', lat: 22.5431, lng: 114.0579 }
-];
  
  export default {
  	mixins: [MescrollMixin],
  	components: { HomeSkeleton },
  	data() {
- 		return {
- 			pageLoading: true,
- 			currentLocation: "点击定位/手动选位置",
- 			latitude: null,
- 			longitude: null,
- 			bannerList: [
- 				{ image: "https://picsum.photos/750/300?random=1" },
- 				{ image: "https://picsum.photos/750/300?random=2" }
- 			],
- 			categoryList: [
- 				{ id: 1, name: "美食", icon: "https://picsum.photos/120/120?random=1" },
- 				{ id: 2, name: "超市", icon: "https://picsum.photos/120/120?random=2" },
- 				{ id: 3, name: "鲜花", icon: "https://picsum.photos/120/120?random=3" },
- 				{ id: 4, name: "药品", icon: "https://picsum.photos/120/120?random=4" },
- 				{ id: 5, name: "跑腿", icon: "https://picsum.photos/120/120?random=5" },
- 				{ id: 6, name: "水果", icon: "https://picsum.photos/120/120?random=6" },
- 				{ id: 7, name: "奶茶", icon: "https://picsum.photos/120/120?random=7" },
- 				{ id: 8, name: "更多", icon: "https://picsum.photos/120/120?random=8" }
- 			],
- 			storeList: [],
- 			isLoaded: false,
- 			isLocating: false
- 		};
- 	},
+		return {
+			pageLoading: true,
+			currentLocation: "点击定位/手动选位置",
+			latitude: null,
+			longitude: null,
+			bannerList: [
+				{ image: "https://picsum.photos/750/300?random=1" },
+				{ image: "https://picsum.photos/750/300?random=2" }
+			],
+			categoryList: [
+				{ id: 1, name: "美食", icon: "https://picsum.photos/120/120?random=1" },
+				{ id: 2, name: "超市", icon: "https://picsum.photos/120/120?random=2" },
+				{ id: 3, name: "鲜花", icon: "https://picsum.photos/120/120?random=3" },
+				{ id: 4, name: "药品", icon: "https://picsum.photos/120/120?random=4" },
+				{ id: 5, name: "跑腿", icon: "https://picsum.photos/120/120?random=5" },
+				{ id: 6, name: "水果", icon: "https://picsum.photos/120/120?random=6" },
+				{ id: 7, name: "奶茶", icon: "https://picsum.photos/120/120?random=7" },
+				{ id: 8, name: "更多", icon: "https://picsum.photos/120/120?random=8" }
+			],
+			storeList: [],
+			isLoaded: false,
+			isLocating: false,
+			isLocationReady: false, // 标记定位是否完成
+			canHideSkeleton: false, // 是否可以隐藏骨架屏
+			waitForSkeletonThenComplete: false, // 是否等待骨架屏时间后完成定位
+			firstLocationSet: false, // 标记是否是首次设置位置
+			pendingStoreRefresh: false
+		};
+	},
  	onLoad() {
 		// 关闭骨架屏兜底
 		setTimeout(() => {
 			if (this.pageLoading) this.pageLoading = false;
 		}, 5000);
-		// 页面加载时，先从缓存读取上次的位置
-		const cached = uni.getStorageSync('locationInfo');
-		if (cached) {
-			this.setLocation(cached.lat, cached.lng, cached.name);
-		}
-		// 自动获取GPS定位
-		this.getGpsLocation();
-		// 检查是否有默认收货地址，优先使用
-		this.checkDefaultAddress();
+		
+		// 开始定位流程
+		this.startLocationProcess();
 	},
  	onShow() {
- 		if (this.storeList.length > 0) this.pageLoading = false;
- 		// 每次页面显示时，检查位置是否变化，如果变化则刷新门店列表
- 		this.refreshIfLocationChanged();
+ 		if (this.storeList.length > 0 && !this.isLocating) this.pageLoading = false;
+ 		// 从地址选择页返回时同步位置并刷新附近商家
+ 		this.syncLocationFromStorage();
  	},
  	methods: {
+			// 用户手动选过地址后，不再用 GPS 覆盖
+			isUserSelectedLocation() {
+				const loc = uni.getStorageSync('locationInfo');
+				return !!(loc && loc.source === 'user' && loc.lat != null && loc.lng != null);
+			},
+
+			applyCachedUserLocation() {
+				const cached = uni.getStorageSync('locationInfo');
+				if (!cached || cached.lat == null || cached.lng == null) return false;
+				const lat = parseFloat(cached.lat);
+				const lng = parseFloat(cached.lng);
+				if (isNaN(lat) || isNaN(lng)) return false;
+				this.latitude = lat;
+				this.longitude = lng;
+				this.currentLocation = cached.name || this.currentLocation;
+				this.firstLocationSet = true;
+				return true;
+			},
+
+			// 开始定位流程
+			startLocationProcess() {
+				// 已有用户选择的收货地址：直接用，不重新 GPS（避免把门店距离刷回旧位置）
+				if (this.isUserSelectedLocation() && this.applyCachedUserLocation()) {
+					this.isLocating = false;
+					this.isLocationReady = true;
+					this.canHideSkeleton = true;
+					this.$nextTick(() => {
+						if (this.mescroll) this.mescroll.resetUpScroll();
+					});
+					return;
+				}
+
+				this.currentLocation = "正在获取定位…";
+				this.isLocating = true;
+				this.isLocationReady = false;
+				
+				this.skeletonTimeout = setTimeout(() => {
+					this.canHideSkeleton = true;
+					if (this.waitForSkeletonThenComplete) {
+						this.waitForSkeletonThenComplete = false;
+						this.locationProcessComplete();
+					}
+				}, 1000);
+				
+				this.locationTimeout = setTimeout(() => {
+					console.log('定位超时，使用兜底位置');
+					this.locationProcessComplete();
+				}, 8000);
+				
+				this.getGpsLocation();
+			},
+			
+			// 定位完成回调（所有定位方式都失败后调用）
+			locationProcessComplete() {
+				// 清除定位超时定时器
+				if (this.locationTimeout) {
+					clearTimeout(this.locationTimeout);
+					this.locationTimeout = null;
+				}
+				
+				// 如果骨架屏最小显示时间还没到，等待
+				if (!this.canHideSkeleton) {
+					this.waitForSkeletonThenComplete = true;
+					return;
+				}
+				
+				this.isLocating = false;
+				this.isLocationReady = true;
+				
+				// 如果还没有位置，使用缓存或默认地址
+				if (!this.latitude || !this.longitude) {
+					this.fallbackToCachedLocation();
+				}
+				
+				// 触发门店列表加载
+				if (this.mescroll) {
+					this.mescroll.resetUpScroll();
+				} else {
+					this.$nextTick(() => {
+						if (this.mescroll) {
+							this.mescroll.resetUpScroll();
+						}
+					});
+				}
+			},
+			
+			// 使用缓存位置或默认地址作为兜底
+			fallbackToCachedLocation() {
+				// 先检查缓存位置
+				const cached = uni.getStorageSync('locationInfo');
+				if (cached && cached.lat && cached.lng) {
+					this.setLocationSilent(cached.lat, cached.lng, cached.name);
+					return;
+				}
+				
+				// 再检查默认收货地址
+				try {
+					const addressList = uni.getStorageSync('addressList') || [];
+					const defaultAddress = addressList.find(item => item.isDefault);
+					if (defaultAddress && defaultAddress.latitude && defaultAddress.longitude) {
+						this.setLocationSilent(
+							parseFloat(defaultAddress.latitude),
+							parseFloat(defaultAddress.longitude),
+							defaultAddress.detailAddress || defaultAddress.address
+						);
+						return;
+					}
+				} catch (error) {
+					console.error('获取默认地址失败:', error);
+				}
+				
+				// 使用默认坐标
+				this.setLocationSilent(DEFAULT_LAT, DEFAULT_LNG, '北京市');
+			},
+			
+			// 静默设置位置（不触发门店刷新）；用户已选手动地址时不覆盖
+			setLocationSilent(lat, lng, name) {
+				if (this.isUserSelectedLocation()) return;
+				this.latitude = lat;
+				this.longitude = lng;
+				this.currentLocation = name;
+				uni.setStorageSync('locationInfo', { name, lat, lng, source: 'gps' });
+				uni.setStorageSync('lastLocation', { lat, lng, name });
+			},
+			
 			// 检查默认收货地址，优先使用
 			checkDefaultAddress() {
 				try {
@@ -179,9 +293,8 @@ const MOCK_LOCATIONS = [
 			
 			// 一键获取GPS定位
 		getGpsLocation() {
-			this.currentLocation = "正在获取位置…";
+			this.currentLocation = "正在获取定位…";
 			this.isLocating = true;
-			
 			// 检查是否是安全环境（HTTPS或localhost）
 			if (!this.isSecureOrigin()) {
 				this.handleNonSecureOrigin();
@@ -203,24 +316,42 @@ const MOCK_LOCATIONS = [
 		
 		// 处理非安全环境的定位
 		handleNonSecureOrigin() {
-			this.isLocating = false;
-			
+			// 继续定位流程，不立即结束
 			// 先检查是否有缓存位置
 			const cached = uni.getStorageSync('locationInfo');
 			if (cached) {
-				this.setLocation(cached.lat, cached.lng, cached.name);
+				this.setLocationSilent(cached.lat, cached.lng, cached.name);
+				this.locationProcessComplete();
 				return;
 			}
 			
 			// 检查是否有默认收货地址
-			this.checkDefaultAddress();
+			try {
+				const addressList = uni.getStorageSync('addressList') || [];
+				const defaultAddress = addressList.find(item => item.isDefault);
+				if (defaultAddress && defaultAddress.latitude && defaultAddress.longitude) {
+					this.setLocationSilent(
+						parseFloat(defaultAddress.latitude),
+						parseFloat(defaultAddress.longitude),
+						defaultAddress.detailAddress || defaultAddress.address
+					);
+					this.locationProcessComplete();
+					return;
+				}
+			} catch (error) {
+				console.error('获取默认地址失败:', error);
+			}
 			
-			// 如果都没有，使用IP定位或模拟数据
+			// 如果都没有，使用IP定位
 			this.tryIpLocation();
 		},
 		
 		// 尝试IP定位（调用后端接口）
 		tryIpLocation(lat, lng) {
+			if (this.isUserSelectedLocation()) {
+				this.locationProcessComplete();
+				return;
+			}
 			const data = {};
 			if (lat && lng) {
 				data.lat = lat;
@@ -247,32 +378,28 @@ const MOCK_LOCATIONS = [
 					} else if (data.province) {
 						address = data.province;
 					}
-					this.setLocation(lat, lng, address || '定位成功');
-				} else {
-					console.warn('定位接口返回数据格式不正确:', res);
-					this.useMockLocation();
+					this.setLocationSilent(lat, lng, address || '定位成功');
 				}
+				// 无论成功与否，都结束定位流程
+				this.locationProcessComplete();
 			}).catch(err => {
 				console.error('IP定位失败:', err);
-				this.useMockLocation();
+				// 定位失败，结束定位流程（会使用兜底位置）
+				this.locationProcessComplete();
 			});
 		},
 		
-		// 使用模拟定位数据（用于测试）
-		useMockLocation() {
-			// 随机选择一个模拟位置
-			const randomIndex = Math.floor(Math.random() * MOCK_LOCATIONS.length);
-			const mock = MOCK_LOCATIONS[randomIndex];
-			this.setLocation(mock.lat, mock.lng, mock.name);
-		},
 		
 		// 尝试uni-app官方定位API
 		tryUniLocation() {
+			if (this.isUserSelectedLocation()) {
+				this.locationProcessComplete();
+				return;
+			}
 			uni.getLocation({
 				type: 'gcj02',
 				timeout: 10000,
 				success: (res) => {
-					this.isLocating = false;
 					const lat = res.latitude;
 					const lng = res.longitude;
 					this.getAddressByLocation(lat, lng);
@@ -280,14 +407,17 @@ const MOCK_LOCATIONS = [
 				fail: (err) => {
 					console.error("uni.getLocation失败:", err);
 					// 尝试IP定位
-					this.tryIpLocation();
+					this.tryIpLocation(39.920279,116.612075);
 				}
 			});
 		},
 		
 		// 通过坐标获取地址名称（逆地理编码）
 		getAddressByLocation(lat, lng) {
-			// 尝试多个逆地理编码服务
+			if (this.isUserSelectedLocation()) {
+				this.locationProcessComplete();
+				return;
+			}
 			this.tryReverseGeocode(lat, lng, 0);
 		},
 		
@@ -319,7 +449,8 @@ const MOCK_LOCATIONS = [
 				success: (res) => {
 					if (res.data && res.data.display_name) {
 						const address = service.parser(res.data);
-						this.setLocation(lat, lng, address);
+						this.setLocationSilent(lat, lng, address);
+						this.locationProcessComplete();
 					} else {
 						this.tryReverseGeocode(lat, lng, attempt + 1);
 					}
@@ -372,7 +503,7 @@ const MOCK_LOCATIONS = [
 				return;
 			}
 			// 定位完成后跳转到收货地址选择页面
-			this.$Router.push({
+			this.$Router.push({    
 				path: '/pages/user/address/select'
 			})
 		},
@@ -427,103 +558,114 @@ const MOCK_LOCATIONS = [
 			});
 		},
 		
-		// 手动选择位置（兼容H5环境）
-		manualChooseLocation() {
-			// 检查是否支持chooseLocation（需要配置地图Key）
-			this.tryChooseLocation();
-		},
-		
-		// 尝试使用uni.chooseLocation
-		tryChooseLocation() {
-			uni.chooseLocation({
-				success: (res) => {
-					this.setLocation(res.latitude, res.longitude, res.name || res.address);
-				},
-				fail: (err) => {
-					console.error("uni.chooseLocation失败:", err);
-					// 如果chooseLocation失败（比如没有配置地图Key），显示地址列表选择
-					this.showAddressSelector();
-				}
-			});
-		},
-		
-		// 显示地址选择器（备用方案）
-		showAddressSelector() {
-			const addressList = uni.getStorageSync('addressList') || [];
+ 		// 保存位置，刷新列表
+		setLocation(lat, lng, name) {
+			// 记录旧位置用于对比
+			const oldLat = this.latitude;
+			const oldLng = this.longitude;
 			
-			if (addressList.length > 0) {
-				// 有收货地址，显示地址列表
-				this.chooseFromAddressList();
+			this.latitude = lat;
+			this.longitude = lng;
+			this.currentLocation = name;
+			
+			// 判断是否是首次设置位置
+			const isFirstLocation = !this.firstLocationSet;
+			this.firstLocationSet = true;
+			
+			uni.setStorageSync('locationInfo', { name, lat, lng });
+			uni.setStorageSync('lastLocation', { lat, lng, name });
+			
+			// 如果正在定位流程中，不立即刷新门店列表
+			// 等待定位流程完成后统一刷新
+			if (this.isLocating) {
+				return;
+			}
+			
+			// 定位流程已完成，标记并刷新门店列表
+			this.isLocationReady = true;
+			if (this.mescroll) {
+				this.mescroll.resetUpScroll();
 			} else {
-				// 没有收货地址，显示输入框让用户输入地址
-				this.showAddressInput();
+				this.$nextTick(() => {
+					if (this.mescroll) {
+						this.mescroll.resetUpScroll();
+					}
+				});
 			}
 		},
 		
-		// 显示地址输入框
-		showAddressInput() {
-			uni.showModal({
-				title: '选择位置',
-				editable: true,
-				placeholderText: '请输入您的位置',
-				confirmText: '确定',
-				cancelText: '取消',
-				success: (res) => {
-					if (res.confirm && res.content) {
-						// 使用默认坐标，保存地址名称
-						this.setLocation(DEFAULT_LAT, DEFAULT_LNG, res.content);
-					}
+		// mescroll初始化完成回调
+		mescrollInit(mescroll) {
+			this.mescroll = mescroll;
+			if (this.pendingStoreRefresh || this.isLocationReady) {
+				if (this.pendingStoreRefresh) {
+					this.storeList = [];
+					this.isLoaded = false;
+					this.pendingStoreRefresh = false;
 				}
-			});
+				this.mescroll.resetUpScroll();
+			}
 		},
  		
- 		// 保存位置，刷新列表
- 		setLocation(lat, lng, name) {
- 			// 记录旧位置用于对比
- 			const oldLat = this.latitude;
- 			const oldLng = this.longitude;
- 			
- 			this.latitude = lat;
- 			this.longitude = lng;
- 			this.currentLocation = name;
- 			this.isLocating = false; // 关闭loading状态
- 			uni.setStorageSync("locationInfo", { name, lat, lng });
- 			uni.setStorageSync("lastLocation", { lat, lng });
- 			// 刷新门店列表
- 			if (this.mescroll) {
- 				this.mescroll.resetUpScroll();
- 			} else {
- 				// 如果mescroll还没初始化，等待初始化后刷新
- 				this.$nextTick(() => {
- 					if (this.mescroll) {
- 						this.mescroll.resetUpScroll();
- 					}
- 				});
- 			}
- 		},
- 		
- 		// 检查位置是否变化，如果变化则刷新
-		refreshIfLocationChanged() {
+		/** 重新拉取附近商家（位置变化后距离由接口按 lat/lng 重算） */
+		refreshStoreList() {
+			this.isLocationReady = true;
+			this.isLocating = false;
+			this.pageLoading = false;
+			if (this.mescroll) {
+				this.storeList = [];
+				this.isLoaded = false;
+				this.mescroll.resetUpScroll();
+				this.pendingStoreRefresh = false;
+			} else {
+				this.pendingStoreRefresh = true;
+			}
+		},
+
+		/** 从地址页返回：同步位置并强制刷新门店列表 */
+		syncLocationFromStorage() {
 			try {
-				const lastLocation = uni.getStorageSync('lastLocation');
-				const currentLocation = uni.getStorageSync('locationInfo');
-				
-				if (lastLocation && currentLocation) {
-					// 比较名称或经纬度是否有变化
-					const locationChanged = 
-						lastLocation.name !== currentLocation.name ||
-						lastLocation.lat !== currentLocation.lat || 
-						lastLocation.lng !== currentLocation.lng;
-					
-					if (locationChanged && this.mescroll) {
-						this.mescroll.resetUpScroll();
-						uni.setStorageSync('lastLocation', currentLocation);
- 					}
- 				}
- 			} catch (error) {
- 				console.error('检查位置变化失败:', error);
- 			}
- 		},
+				const loc = uni.getStorageSync('locationInfo');
+				if (!loc) return;
+
+				const needRefresh = uni.getStorageSync('homeNeedRefresh');
+				const name = loc.name || this.currentLocation;
+				const lat = loc.lat != null ? parseFloat(loc.lat) : null;
+				const lng = loc.lng != null ? parseFloat(loc.lng) : null;
+				const hasCoord = lat != null && lng != null && !isNaN(lat) && !isNaN(lng);
+
+				if (needRefresh) {
+					uni.removeStorageSync('homeNeedRefresh');
+					if (hasCoord) {
+						this.latitude = lat;
+						this.longitude = lng;
+						uni.setStorageSync('lastLocation', { lat, lng, name });
+					}
+					if (name) this.currentLocation = name;
+					this.refreshStoreList();
+					return;
+				}
+
+				if (hasCoord) {
+					const coordsChanged =
+						Math.abs((this.latitude || 0) - lat) > 0.00001 ||
+						Math.abs((this.longitude || 0) - lng) > 0.00001;
+					if (coordsChanged) {
+						this.latitude = lat;
+						this.longitude = lng;
+						this.currentLocation = name;
+						uni.setStorageSync('lastLocation', { lat, lng, name });
+						this.refreshStoreList();
+					} else if (name && this.currentLocation !== name) {
+						this.currentLocation = name;
+					}
+				} else if (name && this.currentLocation !== name) {
+					this.currentLocation = name;
+				}
+			} catch (error) {
+				console.error('同步位置失败:', error);
+			}
+		},
  		
  		downCallback() {
  			this.storeList = [];
@@ -531,26 +673,39 @@ const MOCK_LOCATIONS = [
  		},
  		
  		upCallback(page) {
- 			const lat = this.latitude || DEFAULT_LAT;
- 			const lng = this.longitude || DEFAULT_LNG;
- 			const params = { page: page.num, size: page.size, lat, lng };
- 			
- 			this.$request.post(this.$apis.index.storeList, params).then(res => {
- 				const arr = res.result.content || [];
- 				const total = res.result.totalElements || 0;
- 				arr.forEach(store => {
- 					if (store.distanceText) store.distanceText = store.distanceText.replace('公里', 'km');
- 				});
- 				if (page.num === 1) this.storeList = [];
- 				this.storeList = this.storeList.concat(arr);
- 				this.isLoaded = true;
- 				if (page.num === 1) this.pageLoading = false;
- 				this.mescroll.endSuccess(arr.length, total);
- 			}).catch(() => {
- 				this.pageLoading = false;
- 				this.mescroll.endErr();
- 			});
- 		},
+			const cached = uni.getStorageSync('locationInfo');
+			let lat = this.latitude;
+			let lng = this.longitude;
+			if (cached && cached.lat != null && cached.lng != null) {
+				const clat = parseFloat(cached.lat);
+				const clng = parseFloat(cached.lng);
+				if (!isNaN(clat) && !isNaN(clng)) {
+					lat = clat;
+					lng = clng;
+					this.latitude = clat;
+					this.longitude = clng;
+				}
+			}
+			lat = lat || DEFAULT_LAT;
+			lng = lng || DEFAULT_LNG;
+			const params = { page: page.num, size: page.size, lat, lng };
+			
+			this.$request.post(this.$apis.index.storeList, params).then(res => {
+				const arr = res.result.content || [];
+				const total = res.result.totalElements || 0;
+				arr.forEach(store => {
+					if (store.distanceText) store.distanceText = store.distanceText.replace('公里', 'km');
+				});
+				if (page.num === 1) this.storeList = [];
+				this.storeList = this.storeList.concat(arr);
+				this.isLoaded = true;
+				if (page.num === 1) this.pageLoading = false;
+				this.mescroll.endSuccess(arr.length, total);
+			}).catch(() => {
+				this.pageLoading = false;
+				this.mescroll.endErr();
+			});
+		},
  		
  		toSearchPage() { uni.navigateTo({ url: "/pages/home/search" }); },
  		categoryClick(item) { uni.navigateTo({ url: `/pages/home/category?id=${item.id}&name=${item.name}` }); },
@@ -608,13 +763,17 @@ const MOCK_LOCATIONS = [
  		}
  		.location-content {
  			flex: 1;
+ 			min-width: 0;
  			display: flex;
  			align-items: center;
  			margin-left: 12rpx;
+ 			overflow: hidden;
  		}
  		.location-text {
- 			font-size: 30rpx;
- 			color: #333;
+ 			flex: 1;
+ 			min-width: 0;
+ 			font-size: 28rpx;
+ 			color: #000;
  			font-weight: 500;
  			white-space: nowrap;
  			overflow: hidden;
@@ -622,6 +781,7 @@ const MOCK_LOCATIONS = [
  		}
  		.location-arrow {
  			margin-left: 8rpx;
+ 			flex-shrink: 0;
  			display: flex;
  			align-items: center;
  		}

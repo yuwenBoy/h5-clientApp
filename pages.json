@@ -162,6 +162,12 @@
 			{
 				"navigationBarTitleText" : "搜索"
 			}
+		},
+		{
+			"path": "pages/home/city",
+			"style": {
+				"navigationStyle": "custom"
+			}
 		}
 	],
 	"globalStyle": {

@@ -5,13 +5,6 @@
 			<view class="skeleton-line search-line"></view>
 		</view>
 		
-		<!-- 定位栏骨架 -->
-		<view class="skeleton-location">
-			<view class="skeleton-circle small"></view>
-			<view class="skeleton-line location-line"></view>
-			<view class="skeleton-circle small"></view>
-		</view>
-		
 		<!-- 轮播图骨架 -->
 		<view class="skeleton-banner">
 			<view class="skeleton-rect banner-rect"></view>
@@ -67,6 +60,17 @@ export default {
 	}
 }
 
+@keyframes dot-bounce {
+	0%, 80%, 100% {
+		transform: scale(0);
+		opacity: 0.5;
+	}
+	40% {
+		transform: scale(1);
+		opacity: 1;
+	}
+}
+
 .home-skeleton {
 	min-height: 100vh;
 	background: #f5f5f5;
@@ -96,6 +100,34 @@ export default {
 		height: 32rpx;
 		margin: 0 20rpx;
 		@include skeleton-loading;
+	}
+	
+	&.real-location {
+		.location-icon {
+			width: 32rpx;
+			height: 32rpx;
+		}
+		
+		.location-text {
+			flex: 1;
+			margin: 0 16rpx;
+			font-size: 28rpx;
+			color: #666;
+		}
+		
+		.loading-dot {
+			display: flex;
+			align-items: center;
+			gap: 6rpx;
+			
+			.dot {
+				width: 8rpx;
+				height: 8rpx;
+				border-radius: 50%;
+				background: #999;
+				animation: dot-bounce 1s ease-in-out infinite;
+			}
+		}
 	}
 }
 
