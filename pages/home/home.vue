@@ -402,6 +402,8 @@ const DEFAULT_LNG = 116.4074;
 				success: (res) => {
 					const lat = res.latitude;
 					const lng = res.longitude;
+					alert('获取定位成功')
+					alert(JSON.stringify(res))
 					this.getAddressByLocation(lat, lng);
 				},
 				fail: (err) => {
