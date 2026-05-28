@@ -134,11 +134,9 @@ export default {
       try {
         console.log('获取消息历史 - 当前用户ID:', this.currentUserId)
         console.log('获取消息历史 - 目标用户ID:', this.userId)
-        console.log('获取消息历史 - 订单ID:', this.orderId)
         
         const res = await this.$request.post(this.$apis.message.history, {
-          targetUserId: parseInt(this.userId),
-          orderId: this.orderId ? parseInt(this.orderId) : null
+          targetUserId: parseInt(this.userId)
         })
         
         console.log('获取消息历史 - 接口响应:', JSON.stringify(res))
@@ -463,7 +461,7 @@ export default {
 .chat-footer {
   background: #fff;
   border-top: 1rpx solid #eee;
-  padding: 12rpx 20rpx;
+  padding: 12rpx 16rpx;
   padding-bottom: calc(12rpx + env(safe-area-inset-bottom));
   
   .input-wrapper {
@@ -472,25 +470,27 @@ export default {
     
     .message-input {
       flex: 1;
-      height: 72rpx;
-      padding: 0 28rpx;
-      background: #fff;
-      border: 2rpx solid #e8e8e8;
-      border-radius: 36rpx;
+      height: 80rpx;
+      padding: 0 24rpx;
+      background: #f5f5f5;
+      border: none;
+      border-radius: 40rpx;
       font-size: 28rpx;
+      box-sizing: border-box;
     }
     
     .send-btn {
-      width: 110rpx;
-      height: 72rpx;
+      width: 100rpx;
+      height: 80rpx;
       margin-left: 16rpx;
       background: #ff4d4f;
       color: #fff;
       border: none;
       border-radius: 8rpx;
       font-size: 28rpx;
-      line-height: 72rpx;
+      line-height: 80rpx;
       text-align: center;
+      flex-shrink: 0;
     }
   }
 }

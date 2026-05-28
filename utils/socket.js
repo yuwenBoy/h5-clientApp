@@ -1,3 +1,4 @@
+import utils from './utils.js'
 // socket.io客户端封装
 let socket = null;
 let userId = null;
@@ -22,7 +23,7 @@ const socketClient = {
       path: '/socket.io',
       transports: ['websocket'],
       auth: { 
-        token:this.$utils.getStorage('token') 
+        token:utils.getStorage('token') 
       },
       reconnection: true,
       reconnectionDelay: 1000,

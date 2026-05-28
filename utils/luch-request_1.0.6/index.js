@@ -77,10 +77,10 @@
  }
  
  http.interceptor.request((config, cancel) => {
- 	const token =this.$utils.getStorage('token')
+ 	const token = utils.getStorage('token')
  	if (token) {
  		config.header = config.header || {}
- 		config.header['Authorization'] = 'Bearer ' + token
+ 		config.header['Authorization'] =  token
  	}
  	return config
  })
