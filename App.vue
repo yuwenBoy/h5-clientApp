@@ -2,16 +2,7 @@
 export default {
 	onLaunch: function() {
 		console.log('App Launch');
-
-		// setTimeout(() => {
-		// 	uni.setTabBarBadge({
-		// 		index: 4,
-		// 		text: '11'
-		// 	});
-		// 	uni.showTabBarRedDot({
-		// 		index: 3
-		// 	});
-		// }, 1000);
+		this.loadSocketIO();
 	},
 	onShow: function() {
 		console.log('App Show');
@@ -20,6 +11,23 @@ export default {
 		console.log('App Hide');
 	},
 	watch: {
+	},
+	methods: {
+		loadSocketIO() {
+			// #ifdef H5
+			if (typeof window !== 'undefined' && !window.io) {
+				const script = document.createElement('script');
+				script.src = 'https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js';
+				script.onload = () => {
+					console.log('socket.io客户端加载成功');
+				};
+				script.onerror = () => {
+					console.error('socket.io客户端加载失败');
+				};
+				document.head.appendChild(script);
+			}
+			// #endif
+		}
 	}
 };
 </script>

@@ -39,7 +39,7 @@
       :refresher-triggered="refreshing"
       @refresherrefresh="onRefresh"
     >
-      <view class="order-card" v-for="(order, index) in orderList" :key="order.id" @click="toDetail(order.id)">
+      <view class="order-card" v-for="(order, index) in orderList" :key="order.id" @click="toDetail(order.id, order.merchantUserId)">
         <!-- 订单头部：订单号 + 状态 -->
         <view class="order-header">
           <view class="order-no">订单号：{{ order.orderNo }}</view>
@@ -103,7 +103,7 @@
             </template>
             <!-- 待接单 -->
             <template v-else-if="order.orderStatus === 1">
-              <button class="order-btn line" @click.stop="toDetail(order.id)">
+              <button class="order-btn line" @click.stop="toDetail(order.id, order.merchantUserId)">
                 查看详情
               </button>
               <button class="order-btn primary" @click.stop="contactMerchant(order)">
@@ -112,8 +112,8 @@
             </template>
             <!-- 备货中 -->
             <template v-else-if="order.orderStatus === 2">
-              <button class="order-btn line" @click.stop="toDetail(order.id)">
-                查看详情
+              <button class="order-btn line" @click.stop="contactMerchant(order)">
+                联系商家
               </button>
               <button class="order-btn primary" @click.stop="contactMerchant(order)">
                 催单
@@ -121,8 +121,8 @@
             </template>
             <!-- 待配送 -->
             <template v-else-if="order.orderStatus === 3">
-              <button class="order-btn line" @click.stop="toDetail(order.id)">
-                查看详情
+              <button class="order-btn line" @click.stop="contactMerchant(order)">
+                联系商家
               </button>
               <button class="order-btn primary" @click.stop="viewDelivery(order)">
                 配送信息
@@ -139,11 +139,14 @@
             </template>
             <!-- 已完成 -->
             <template v-else-if="order.orderStatus === 5">
-              <button class="order-btn line" @click.stop="toDetail(order.id)">
-                查看详情
+              <button class="order-btn line" @click.stop="contactMerchant(order)">
+                联系商家
               </button>
               <button class="order-btn primary" v-if="!order.isReviewed" @click.stop="goReview(order)">
                 去评价
+              </button>
+              <button class="order-btn primary" v-else @click.stop="toDetail(order.id, order.merchantUserId)">
+                查看详情
               </button>
             </template>
             <!-- 已取消 -->
@@ -203,9 +206,9 @@ export default {
       tabList: [
         { name: '全部', status: null, badge: 0 },
         { name: '待付款', status: 0, badge: 0 },
-        { name: '进行中', status: 'processing', badge: 0 },
-        { name: '已完成', status: 5, badge: 0 },
-        { name: '售后', status: 'aftersale', badge: 0 }
+        { name: '待发货', status: 'pendingShip', badge: 0 },
+        { name: '待收货', status: 'pendingReceipt', badge: 0 },
+        { name: '已关闭', status: 'closed', badge: 0 }
       ],
       orderList: [],
       storeLogo: '/static/img/store-default.png',
@@ -380,8 +383,8 @@ export default {
         const tabItem = this.tabList[this.activeTab]
         let status = tabItem.status
         
-        // 处理"进行中"特殊状态（包含待接单、备货中、待配送、配送中）
-        if (status === 'processing') {
+        // 处理特殊状态
+        if (status === 'pendingShip' || status === 'pendingReceipt' || status === 'closed') {
           status = null  // 后端需要特殊处理，暂时获取全部
         }
         
@@ -420,10 +423,21 @@ export default {
           
           console.log('解析后的订单列表:', list)
           
-          // 如果是"进行中"标签，前端过滤
-          if (tabItem.status === 'processing') {
+          // 根据标签进行前端过滤
+          if (tabItem.status === 'pendingShip') {
+            // 待发货：待接单、备货中
             list = list.filter(order => {
-              return [1, 2, 3, 4].includes(order.orderStatus)
+              return [1, 2].includes(order.orderStatus)
+            })
+          } else if (tabItem.status === 'pendingReceipt') {
+            // 待收货：待配送、配送中
+            list = list.filter(order => {
+              return [3, 4].includes(order.orderStatus)
+            })
+          } else if (tabItem.status === 'closed') {
+            // 已关闭：已取消、已超时、已退款
+            list = list.filter(order => {
+              return [6, 7, 8].includes(order.orderStatus)
             })
           }
           
@@ -589,16 +603,71 @@ export default {
     },
     
     // 去订单详情
-    toDetail(orderId) {
-      uni.navigateTo({
-        url: `/pages/order/detail?id=${orderId}`
-      })
+    toDetail(orderId, merchantUserId) {
+			this.$Router.push({
+				path: '/pages/order/detail',
+				query: {
+				  id:orderId,
+					merchantUserId:merchantUserId
+				}
+			})
     },
     
     // 联系商家
     contactMerchant(order) {
+      const items = []
+      const actions = []
+      
+      // 如果有商家ID，支持在线联系
+      if (order.merchantId || order.merchantUserId) {
+        items.push('在线联系')
+        actions.push('chat')
+      }
+      
+      // 如果有商家电话，支持拨打电话
+      if (order.storePhone) {
+        items.push('拨打电话')
+        actions.push('call')
+      }
+      
+      // 如果既没有商家ID也没有电话
+      if (items.length === 0) {
+        uni.showToast({ title: '暂无商家联系方式', icon: 'none' })
+        return
+      }
+      
+      uni.showActionSheet({
+        itemList: items,
+        success: (res) => {
+          const action = actions[res.tapIndex]
+          if (action === 'chat') {
+            this.chatWithMerchant(order)
+          } else if (action === 'call') {
+            this.callMerchant(order.storePhone)
+          }
+        }
+      })
+    },
+    
+    // 在线联系商家
+    chatWithMerchant(order) {
+      const targetId = order.storeId || order.merchantId
+      const targetName = order.storeName || '商家'
+      if (!targetId) {
+        uni.showToast({ title: '商家信息不存在', icon: 'none' })
+        return
+      }
+      
+      // 跳转到消息列表页面（与淘宝闪购一致）
+      uni.switchTab({
+        url: '/pages/im/index'
+      })
+    },
+    
+    // 拨打电话给商家
+    callMerchant(phone) {
       uni.makePhoneCall({
-        phoneNumber: order.storePhone || ''
+        phoneNumber: phone
       })
     },
     

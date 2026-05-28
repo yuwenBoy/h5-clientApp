@@ -48,7 +48,7 @@
 		//#endif
 		//#ifndef H5
 		{
-			"path": "pages/user/home",
+			"path": "pages/user/user",
 			"style": {
 				"navigationStyle": "custom",
 				"navigationBarTitleText": "首页",
@@ -80,7 +80,7 @@
 		}, {
 			"path": "pages/order/detail",  
 			"style": {
-				"navigationBarTitleText": "订单详情"
+				"navigationBarTitleText": ""
 			}
 		}, {
 			"path": "pages/order/pay",

@@ -18,7 +18,7 @@ const order =[{
 	path:'/pages/order/detail',
 	name:'orderDetail',
 	meta: {
-		title: '订单列表',
+		title: '',
 	},
 },
 {

@@ -30,9 +30,13 @@
  		}
  	}
  
- 	// ✅ 兜底：如果都没匹配到，也给一个地址
+ 	// ✅ 兜底：如果都没匹配到，使用当前服务器的IP作为API地址
  	if (!matched) {
- 		baseUrl = 'http://' + API_URL.develop
+ 		// 使用当前页面的主机地址作为API地址（替换端口）
+ 		const protocol = location.protocol;
+ 		const hostname = location.hostname;
+ 		// 使用后端端口 9000
+ 		baseUrl = `${protocol}//${hostname}:9000/basic-api`;
  	}
  }
  // #endif
@@ -73,6 +77,11 @@
  }
  
  http.interceptor.request((config, cancel) => {
+ 	const token =this.$utils.getStorage('token')
+ 	if (token) {
+ 		config.header = config.header || {}
+ 		config.header['Authorization'] = 'Bearer ' + token
+ 	}
  	return config
  })
  

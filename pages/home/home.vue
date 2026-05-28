@@ -772,7 +772,6 @@ const DEFAULT_LNG = 116.4074;
  			overflow: hidden;
  		}
  		.location-text {
- 			flex: 1;
  			min-width: 0;
  			font-size: 28rpx;
  			color: #000;
