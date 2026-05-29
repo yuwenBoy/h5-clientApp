@@ -4,11 +4,11 @@ const GlobalOption = {
 	down: {
 		// 其他down的配置参数也可以写,这里只展示了常用的配置:
 		textInOffset: '下拉刷新', // 下拉的距离在offset范围内的提示文本
-		textOutOffset: '松手刷新', // 下拉的距离大于offset范围的提示文本
-		textLoading: '刷新中...', // 加载中的提示文本
+		textOutOffset: '释放立即刷新', // 下拉的距离大于offset范围的提示文本
+		textLoading: '正在刷新', // 加载中的提示文本
 		offset: 100, // 在列表顶部,下拉大于100px,松手即可触发下拉刷新的回调
 		bgColor: 'transparent', // 下拉区域背景颜色
-		textColor: '#ff6000', // 提示文字颜色
+		textColor: '#666666', // 提示文字颜色
 		native: false, // 是否使用系统自带的下拉刷新; 默认false; 仅在mescroll-body生效
 		auto: true, // 是否自动执行下拉刷新 (默认为是)
 		isLock: false, // 是否锁定下拉刷新 (默认为false)

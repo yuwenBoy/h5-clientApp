@@ -17,11 +17,11 @@
           v-for="(msg, index) in messageList" 
           :key="index"
           :id="'msg-' + index"
-          :class="msg.senderId === currentUserId ? 'message-self' : 'message-other'"
+          :class="parseInt(msg.senderId) === parseInt(currentUserId) ? 'message-self' : 'message-other'"
         >
           <image 
             class="avatar" 
-            :src="msg.senderId === currentUserId ? currentUserAvatar : targetUserAvatar" 
+            :src="parseInt(msg.senderId) === parseInt(currentUserId) ? currentUserAvatar : targetUserAvatar" 
             mode="aspectFill" 
           />
           <view class="message-wrapper">
@@ -300,9 +300,12 @@ export default {
     formatMessageTime(timestamp) {
       if (!timestamp) return ''
       const date = new Date(timestamp)
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
       const hours = String(date.getHours()).padStart(2, '0')
       const minutes = String(date.getMinutes()).padStart(2, '0')
-      return `${hours}:${minutes}`
+      return `${year}-${month}-${day} ${hours}:${minutes}`
     },
     
     goBack() {

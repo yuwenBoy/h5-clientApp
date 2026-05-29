@@ -78,7 +78,7 @@ export default {
 					position: absolute;
 					width: 24rpx;
 					height: 4rpx;
-					background: #ff6000;
+					background: #666666;
 					border-radius: 2rpx;
 					transition: transform 0.3s ease;
 				}
@@ -113,7 +113,7 @@ export default {
 				.loading-circle {
 					width: 12rpx;
 					height: 12rpx;
-					background: #ff6000;
+					background: #666666;
 					border-radius: 50%;
 					animation: loading-bounce 1s ease-in-out infinite;
 				}

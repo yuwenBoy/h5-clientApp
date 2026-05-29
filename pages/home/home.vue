@@ -869,12 +869,15 @@ const DEFAULT_LNG = 116.4074;
  			margin-left: 20rpx;
  		}
  		.store-header {
- 			display: flex;
- 			justify-content: space-between;
- 			.store-name {
- 				font-size: 32rpx;
- 				font-weight: bold;
- 			}
+			display: flex;
+			justify-content: space-between;
+			.store-name {
+				font-size: 32rpx;
+				font-weight: bold;
+				white-space: nowrap;
+				overflow: hidden;
+				text-overflow: clip;
+			}
  			.store-distance {
  				font-size: 24rpx;
  				color: #999;
