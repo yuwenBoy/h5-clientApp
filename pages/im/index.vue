@@ -1,9 +1,5 @@
 <template>
   <view class="message-list">
-    <view class="header">
-      <text class="header-title">消息</text>
-    </view>
-    
     <view class="message-container">
       <view class="message-item" v-for="(item, index) in messageList" :key="index" @click="goToChat(item)">
         <image class="avatar" :src="item.avatar || '/static/logo.png'" mode="aspectFill" />
@@ -62,9 +58,12 @@ export default {
     },
     
     goToChat(item) {
-      uni.navigateTo({
-        url: `/pages/im/chat?userId=${item.userId}&userName=${encodeURIComponent(item.name)}&avatar=${encodeURIComponent(item.avatar || '')}`
-      })
+			 this.$Router.push({
+				path: '/pages/im/chat',
+				query: {
+					userId:item.userId,
+				}
+			 })
     },
     
     formatTime(timestamp) {
@@ -97,19 +96,6 @@ export default {
 .message-list {
   min-height: 100vh;
   background: #f5f5f5;
-}
-
-.header {
-  background: #fff;
-  padding: 30rpx;
-  text-align: center;
-  border-bottom: 1rpx solid #eee;
-  
-  .header-title {
-    font-size: 36rpx;
-    font-weight: bold;
-    color: #333;
-  }
 }
 
 .message-container {

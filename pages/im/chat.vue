@@ -6,6 +6,7 @@
       </view>
       <view class="header-center">
         <text class="header-title">{{ userName }}</text>
+        <text v-if="isBusiness" class="shop-icon" @click="goToShop">🏪</text>
       </view>
       <view class="header-right"></view>
     </view>
@@ -72,7 +73,8 @@ export default {
       messageList: [],
       inputMessage: '',
       scrollIntoView: '',
-      socketConnected: false
+      socketConnected: false,
+      isBusiness: false
     }
   },
   
@@ -100,10 +102,11 @@ export default {
       }
     }
     
-    this.userId = query.userId || query.receiverId || ''
-    this.userName = decodeURIComponent(query.userName || '')
-    this.userAvatar = decodeURIComponent(query.avatar || '')
+    this.userId = query.userId
+    // this.userName = decodeURIComponent(query.userName || '')
+    // this.userAvatar = decodeURIComponent(query.avatar || '')
     this.orderId = query.orderId || ''
+    this.isBusiness = query.isBusiness === 'true' || query.isBusiness === true
     
     // 优先使用URL参数中的fromUserId或senderId，否则使用本地存储中的userId（带项目前缀）
     const projectName = 'jxxqz-h5'
@@ -124,12 +127,24 @@ export default {
       console.error('缺少必要参数：userId或currentUserId为空')
     }
   },
-  
+  mounted(){
+		debugger
+		this.userId = this.$Route.query.userId
+		if(this.userId){
+			 this.getMessageHistory()
+		}
+	},
   onUnload() {
     this.closeWebSocket()
   },
   
   methods: {
+    goToShop() {
+      uni.navigateTo({
+        url: `/pages/shop/detail?id=${this.userId}`
+      })
+    },
+    
     async getMessageHistory() {
       try {
         console.log('获取消息历史 - 当前用户ID:', this.currentUserId)
@@ -350,11 +365,20 @@ export default {
   
   .header-center {
     flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     
     .header-title {
       font-size: 32rpx;
       font-weight: 500;
       color: #333;
+    }
+    
+    .shop-icon {
+      font-size: 28rpx;
+      margin-left: 8rpx;
+      cursor: pointer;
     }
   }
   
@@ -464,8 +488,8 @@ export default {
 .chat-footer {
   background: #fff;
   border-top: 1rpx solid #eee;
-  padding: 12rpx 16rpx;
-  padding-bottom: calc(12rpx + env(safe-area-inset-bottom));
+  padding: 16rpx 20rpx;
+  padding-bottom: calc(16rpx + env(safe-area-inset-bottom));
   
   .input-wrapper {
     display: flex;
@@ -473,25 +497,26 @@ export default {
     
     .message-input {
       flex: 1;
-      height: 80rpx;
-      padding: 0 24rpx;
+      min-height: 88rpx;
+      padding: 16rpx 28rpx;
       background: #f5f5f5;
       border: none;
-      border-radius: 40rpx;
-      font-size: 28rpx;
+      border-radius: 44rpx;
+      font-size: 30rpx;
       box-sizing: border-box;
+      line-height: 1.5;
     }
     
     .send-btn {
-      width: 100rpx;
-      height: 80rpx;
-      margin-left: 16rpx;
+      width: 120rpx;
+      height: 88rpx;
+      margin-left: 20rpx;
       background: #ff4d4f;
       color: #fff;
       border: none;
-      border-radius: 8rpx;
-      font-size: 28rpx;
-      line-height: 80rpx;
+      border-radius: 44rpx;
+      font-size: 30rpx;
+      line-height: 88rpx;
       text-align: center;
       flex-shrink: 0;
     }
