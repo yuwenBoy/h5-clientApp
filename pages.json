@@ -75,7 +75,7 @@
 		}, {
 			"path": "pages/order/list",
 			"style": {
-				"navigationStyle": "custom"
+			  "navigationBarTitleText": "订单列表"
 			}
 		}, {
 			"path": "pages/order/detail",  

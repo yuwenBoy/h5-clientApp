@@ -1,14 +1,8 @@
 <template>
-	<scroll-view 
-		scroll-y 
-		@scroll="onscroll" 
-		class="page-container"
-		:scroll-top="0"
-		:enable-back-to-top="true"
-		:show-scrollbar="true"
-	>
+	<scroll-view scroll-y @scroll="onscroll" class="page-container" :scroll-top="0" :enable-back-to-top="true"
+		:show-scrollbar="true">
 		<nav-bar :scroll-top="scrollTop" :showBack="false" type="white" title="我的"></nav-bar>
-		
+
 		<!-- 顶部用户信息卡片 -->
 		<view class="user-header">
 			<view class="header-bg">
@@ -17,11 +11,8 @@
 			<view class="user-card">
 				<view class="avatar-section" @click="handleUserClick">
 					<view class="avatar-wrapper">
-						<image 
-							:src="isLogin && userInfo.avatar ? userInfo.avatar : defaultAvatar" 
-							class="avatar"
-							mode="aspectFill"
-						></image>
+						<image :src="isLogin && userInfo.avatar ? userInfo.avatar : defaultAvatar" class="avatar" mode="aspectFill">
+						</image>
 						<view class="vip-badge" v-if="isLogin">
 							<text class="vip-text">VIP</text>
 						</view>
@@ -37,19 +28,19 @@
 						<uni-icons :size="18" color="#999" type="arrowright" />
 					</view>
 				</view>
-				
+
 				<!-- 统计数据 -->
 				<view class="stats-section">
-					<view class="stat-item" @click="toOrder">
-						<text class="stat-num">3</text>
+					<view class="stat-item" @click="toOrder(1)">
+						<text class="stat-num">{{ orderStats.pending }}</text>
 						<text class="stat-label">待付款</text>
 					</view>
-					<view class="stat-item" @click="toOrder">
-						<text class="stat-num">5</text>
+					<view class="stat-item" @click="toOrder(3)">
+						<text class="stat-num">{{ orderStats.waitingDelivery + orderStats.delivering }}</text>
 						<text class="stat-label">待收货</text>
 					</view>
-					<view class="stat-item" @click="toOrder">
-						<text class="stat-num">12</text>
+					<view class="stat-item" @click="toOrder(0)">
+						<text class="stat-num">{{ orderStats.total }}</text>
 						<text class="stat-label">全部订单</text>
 					</view>
 					<view class="stat-item">
@@ -59,8 +50,8 @@
 				</view>
 			</view>
 		</view>
-		
-			<!-- 我的订单快捷入口 -->
+
+		<!-- 我的订单快捷入口 -->
 		<view class="section-card">
 			<view class="section-header">
 				<text class="section-title">我的订单</text>
@@ -76,17 +67,21 @@
 					</view>
 					<text class="order-label">待付款</text>
 				</view>
+				<view class="order-item" @click="toOrder(2)">
+					<view class="order-icon shipping"></view>
+					<text class="order-label">待发货</text>
+				</view>
 				<view class="order-item" @click="toOrder(3)">
-					<view class="order-icon completed"></view>
-					<text class="order-label">已完成</text>
+					<view class="order-icon receiving"></view>
+					<text class="order-label">待收货</text>
 				</view>
 				<view class="order-item" @click="toOrder(4)">
-					<view class="order-icon refund"></view>
-					<text class="order-label">售后</text>
+					<view class="order-icon closed"></view>
+					<text class="order-label">已关闭</text>
 				</view>
 			</view>
 		</view>
-		
+
 		<!-- 功能菜单 -->
 		<view class="section-card menu-section">
 			<view class="menu-list">
@@ -117,7 +112,7 @@
 					</view>
 					<uni-icons :size="16" color="#ccc" type="arrowright" />
 				</view>
-				<view class="menu-item">
+				<view class="menu-item" @click="contactChat">
 					<view class="menu-left">
 						<view class="menu-icon service">
 							<uni-icons :size="22" color="#fff" type="chatbubble-filled" />
@@ -137,7 +132,7 @@
 				</view>
 			</view>
 		</view>
-		
+
 		<!-- 底部占位 -->
 		<view class="bottom-space"></view>
 	</scroll-view>
@@ -160,6 +155,16 @@
 					pending: 0,
 					completed: 0,
 					afterSale: 0
+				},
+				orderStats: {
+					pending: 0, // 待付款
+					pendingAccept: 0, // 待接单
+					preparing: 0, // 备货中
+					waitingDelivery: 0, // 待配送
+					delivering: 0, // 配送中
+					completed: 0, // 已完成
+					canceled: 0, // 已取消
+					total: 0 // 全部订单
 				}
 			}
 		},
@@ -171,122 +176,173 @@
 			this.refreshUserInfo()
 		},
 		methods: {
-		checkLoginStatus() {
-			// 使用 $utils.getStorage 读取（会自动添加项目前缀）
-			const token = this.$utils.getStorage('token')
-			// 统一判断逻辑：token 必须是字符串且非空
-			this.isLogin = !!(token && typeof token === 'string' && token !== '{}' && token.trim() !== '')
-			
-			if (this.isLogin) {
-				// 获取用户信息
-				const userInfo = this.$utils.getStorage('userInfo') || {}
-				this.userInfo = {
-					nickname: userInfo.nickname || userInfo.userName || '用户',
-					avatar: userInfo.avatar || userInfo.headImg || '',
-					phone: userInfo.phone || userInfo.mobile || ''
-				}
-			} else {
-				// 未登录时清空用户信息
-				this.userInfo = { nickname: '', avatar: '', phone: '' }
-			}
-		},
-		refreshUserInfo() {
-			// 强制刷新登录状态和用户信息 - 使用与 checkLoginStatus 一致的逻辑
-			const token = this.$utils.getStorage('token')
-			const hasLogin = !!(token && typeof token === 'string' && token !== '{}' && token.trim() !== '')
-			
-			// 如果登录状态有变化，更新数据
-			if (hasLogin !== this.isLogin) {
-				this.isLogin = hasLogin
-			}
-			
-			if (this.isLogin) {
-				const userInfo = this.$utils.getStorage('userInfo') || {}
-				this.userInfo = {
-					nickname: userInfo.nickname || userInfo.userName || '用户',
-					avatar: userInfo.avatar || userInfo.headImg || '',
-					phone: userInfo.phone || userInfo.mobile || ''
-				}
-				// 如果本地有 token 但没有 userInfo，尝试从后端获取
-				if (!userInfo || !userInfo.nickname) {
-					this.fetchUserInfo()
-				}
-			} else {
-				// 未登录时清空用户信息
-				this.userInfo = { nickname: '', avatar: '', phone: '' }
-			}
-		},
-		fetchUserInfo() {
-			// 从后端获取用户信息
-			this.$api.userInfo().then(res => {
-				if (res && res.nickname) {
+			checkLoginStatus() {
+				// 使用 $utils.getStorage 读取（会自动添加项目前缀）
+				const token = this.$utils.getStorage('token')
+				// 统一判断逻辑：token 必须是字符串且非空
+				this.isLogin = !!(token && typeof token === 'string' && token !== '{}' && token.trim() !== '')
+
+				if (this.isLogin) {
+					// 获取用户信息
+					const userInfo = this.$utils.getStorage('userInfo') || {}
 					this.userInfo = {
-						nickname: res.nickname || res.userName || '用户',
-						avatar: res.avatar || res.headImg || '',
-						phone: res.phone || res.mobile || ''
+						nickname: userInfo.nickname || userInfo.userName || '用户',
+						avatar: userInfo.avatar || userInfo.headImg || '',
+						phone: userInfo.phone || userInfo.mobile || ''
 					}
-					// 缓存用户信息
-					this.$utils.setStorage('userInfo', res)
+				} else {
+					// 未登录时清空用户信息
+					this.userInfo = {
+						nickname: '',
+						avatar: '',
+						phone: ''
+					}
 				}
-			}).catch(err => {
-				console.log('获取用户信息失败', err)
-			})
-		},
+			},
+			refreshUserInfo() {
+				// 强制刷新登录状态和用户信息 - 使用与 checkLoginStatus 一致的逻辑
+				const token = this.$utils.getStorage('token')
+				const hasLogin = !!(token && typeof token === 'string' && token !== '{}' && token.trim() !== '')
+
+				// 如果登录状态有变化，更新数据
+				if (hasLogin !== this.isLogin) {
+					this.isLogin = hasLogin
+				}
+
+				if (this.isLogin) {
+					const userInfo = this.$utils.getStorage('userInfo') || {}
+					this.userInfo = {
+						nickname: userInfo.nickname || userInfo.userName || '用户',
+						avatar: userInfo.avatar || userInfo.headImg || '',
+						phone: userInfo.phone || userInfo.mobile || ''
+					}
+					// 如果本地有 token 但没有 userInfo，尝试从后端获取
+					if (!userInfo || !userInfo.nickname) {
+						this.fetchUserInfo()
+					}
+					// 获取订单统计
+					this.fetchOrderStats()
+				} else {
+					// 未登录时清空用户信息
+					this.userInfo = {
+						nickname: '',
+						avatar: '',
+						phone: ''
+					}
+					// 未登录时重置订单统计
+					this.orderStats = {
+						pending: 0,
+						pendingAccept: 0,
+						preparing: 0,
+						waitingDelivery: 0,
+						delivering: 0,
+						completed: 0,
+						canceled: 0,
+						total: 0
+					}
+				}
+			},
+			fetchOrderStats() {
+				// 从后端获取订单统计数量
+				this.$request.post(this.$apis.order.count, {}).then(res => {
+					if (res && res.success && res.result) {
+						this.orderStats = {
+							...this.orderStats,
+							...res.result
+						}
+						// 更新 orderCount 用于订单快捷入口的徽章
+						this.orderCount.pending = res.result.pending || 0
+					}
+				}).catch(err => {
+					console.log('获取订单统计失败', err)
+				})
+			},
+			fetchUserInfo() {
+				// 从后端获取用户信息
+				this.$request.post(this.$apis.user.userInfo, {}).then(res => {
+					if (res && res.nickname) {
+						this.userInfo = {
+							nickname: res.nickname || res.userName || '用户',
+							avatar: res.avatar || res.headImg || '',
+							phone: res.phone || res.mobile || ''
+						}
+						// 缓存用户信息
+						this.$utils.setStorage('userInfo', res)
+					}
+				}).catch(err => {
+					console.log('获取用户信息失败', err)
+				})
+			},
 			toMyInfo(e) {
 				this.$Router.push({
 					path: '/pages/user/address/list'
 				})
 			},
-		toOrder(tabIndex = 0) {
-			// 防止重复点击
-			if (this.clicking) return
-			this.clicking = true
-			
-			uni.navigateTo({
-				url: `/pages/order/list?tab=${tabIndex}`
-			})
-			
-			setTimeout(() => {
-				this.clicking = false
-			}, 500)
-		},
-		toLogin(e) {
-			// 从当前页面进入登录，登录成功后返回当前页面
-			const currentPage = '/pages/user/user'
-			uni.navigateTo({
-				url: `/pages/user/login?redirect=${encodeURIComponent(currentPage)}`
-			})
-		},
-		onscroll(e) {
-			this.scrollTop = e.detail.scrollTop
-		},
-		handleUserClick() {
-			if (!this.isLogin) {
-				this.toLogin()
-			}
-		},
-		formatPhone(phone) {
-			if (!phone) return ''
-			return phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')
-		},
-		handleLogout() {
-			uni.showModal({
-				title: '提示',
-				content: '确定要退出登录吗？',
-				success: (res) => {
-					if (res.confirm) {
-						// 清除登录信息（使用 $utils.removeStorage）
-						this.$utils.removeStorage('token')
-						this.$utils.removeStorage('userInfo')
-						this.isLogin = false
-						this.userInfo = { nickname: '', avatar: '', phone: '' }
-						this.$utils.toast('已退出登录')
-					}
+			toOrder(tabIndex = 0) {
+				// 防止重复点击
+				if (this.clicking) return
+				this.clicking = true
+
+				uni.navigateTo({
+					url: `/pages/order/list?tab=${tabIndex}`
+				})
+
+				setTimeout(() => {
+					this.clicking = false
+				}, 500)
+			},
+			toLogin(e) {
+				// 从当前页面进入登录，登录成功后返回当前页面
+				const currentPage = '/pages/user/user'
+				uni.navigateTo({
+					url: `/pages/user/login?redirect=${encodeURIComponent(currentPage)}`
+				})
+			},
+			onscroll(e) {
+				this.scrollTop = e.detail.scrollTop
+			},
+			handleUserClick() {
+				if (!this.isLogin) {
+					this.toLogin()
 				}
-			})
+			},
+			formatPhone(phone) {
+				if (!phone) return ''
+				return phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')
+			},
+			handleLogout() {
+				uni.showModal({
+					title: '提示',
+					content: '确定要退出登录吗？',
+					success: (res) => {
+						if (res.confirm) {
+							// 清除登录信息（使用 $utils.removeStorage）
+							this.$utils.removeStorage('token')
+							this.$utils.removeStorage('userInfo')
+							this.isLogin = false
+							this.userInfo = {
+								nickname: '',
+								avatar: '',
+								phone: ''
+							}
+							this.$utils.toast('已退出登录')
+						}
+					}
+				})
+			},
+			// 联系客服
+			contactChat() {
+				let _userName = '系统客服'
+				this.$Router.push({
+					path: '/pages/im/chat',
+					query: {
+						userId: 19,
+						userName: encodeURIComponent(_userName),
+					}
+				})
+			},
 		}
 	}
-}
 </script>
 
 <style lang="less" scoped>
@@ -525,6 +581,14 @@
 					background: linear-gradient(135deg, #feca57 0%, #ff9f43 100%);
 				}
 
+				&.receiving {
+					background: linear-gradient(135deg, #a29bfe 0%, #6c5ce7 100%);
+				}
+
+				&.closed {
+					background: linear-gradient(135deg, #a0a0a0 0%, #707070 100%);
+				}
+
 				.badge {
 					position: absolute;
 					top: -8rpx;
@@ -595,13 +659,13 @@
 						background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
 					}
 
-				&.setting {
-					background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-				}
+					&.setting {
+						background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+					}
 
-				&.logout {
-					background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);
-				}
+					&.logout {
+						background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);
+					}
 				}
 
 				.menu-text {

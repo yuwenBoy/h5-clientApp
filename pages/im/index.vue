@@ -5,7 +5,7 @@
         <image class="avatar" :src="item.avatar || '/static/logo.png'" mode="aspectFill" />
         <view class="message-content">
           <view class="message-header">
-            <text class="name">{{ item.name }}</text>
+            <text class="name">{{ item.userId == 19 ? '系统客服':item.name }}</text>
             <text class="time">{{ formatTime(item.lastTime) }}</text>
           </view>
           <view class="message-body">
@@ -24,19 +24,29 @@
 </template>
 
 <script>
+import socketClient from '@/utils/socket.js'
+
 export default {
   data() {
     return {
-      messageList: []
+      messageList: [],
+      currentUserId: ''
     }
   },
   
   onLoad() {
+    this.getCurrentUserId()
     this.getMessageList()
+    this.initWebSocket()
   },
   
   onShow() {
     this.getMessageList()
+  },
+  
+  onUnload() {
+    // 页面卸载时移除监听
+    socketClient.off('new_message')
   },
   
   onPullDownRefresh() {
@@ -46,11 +56,78 @@ export default {
   },
   
   methods: {
+    getCurrentUserId() {
+      const projectName = 'jxxqz-h5'
+      const userInfo = this.$utils.getStorage('userInfo')
+      let tempCurrentUserId = userInfo?.id || userInfo?.userId || ''
+      
+      if (!tempCurrentUserId) {
+        tempCurrentUserId = uni.getStorageSync(projectName + '_userId') || uni.getStorageSync('userId') || ''
+      }
+      
+      this.currentUserId = tempCurrentUserId
+    },
+    
+    initWebSocket() {
+      // 等待 socket.io 客户端加载完成
+      this.waitForSocketIO(() => {
+        socketClient.on('new_message', (message) => {
+          console.log('消息列表页收到新消息:', message)
+          // 更新消息列表中的未读数量
+          this.handleNewMessage(message)
+        })
+      })
+    },
+    
+    waitForSocketIO(callback) {
+      if (typeof socketClient !== 'undefined' && socketClient.init) {
+        callback()
+      } else {
+        setTimeout(() => this.waitForSocketIO(callback), 100)
+      }
+    },
+    
+    handleNewMessage(message) {
+      // 如果是自己发送的消息，不增加未读数
+      if (message.senderId == this.currentUserId) {
+        return
+      }
+      
+      // 查找对应的会话
+      const conversation = this.messageList.find(item => item.userId == message.senderId)
+      
+      if (conversation) {
+        // 会话已存在，更新最后一条消息和未读数
+        conversation.lastMessage = message.content
+        conversation.lastTime = message.createTime || Date.now()
+        conversation.unreadCount = (conversation.unreadCount || 0) + 1
+        
+        // 移动到列表顶部
+        this.messageList = this.messageList.filter(item => item.userId != message.senderId)
+        this.messageList.unshift(conversation)
+      } else {
+        // 新会话，添加到列表顶部
+        const newConversation = {
+          userId: message.senderId,
+          name: `用户${message.senderId}`,
+          avatar: message.senderAvatar || '',
+          lastMessage: message.content,
+          lastTime: message.createTime || Date.now(),
+          unreadCount: 1,
+          isBusiness: false
+        }
+        this.messageList.unshift(newConversation)
+      }
+    },
+    
     async getMessageList() {
       try {
         const res = await this.$request.post(this.$apis.message.list)
         if (res.success && res.result) {
           this.messageList = res.result
+          this.messageList.forEach(item=>{
+            item.name = item.userId == 19 ? '系统客服':item.name
+          })
         }
       } catch (error) {
         console.error('获取消息列表失败:', error)
@@ -58,12 +135,21 @@ export default {
     },
     
     goToChat(item) {
-			 this.$Router.push({
-				path: '/pages/im/chat',
-				query: {
-					userId:item.userId,
-				}
-			 })
+      let _userName = item.name
+      this.$Router.push({
+        path: '/pages/im/chat',
+        query: {
+          userId: item.userId,
+          userName: encodeURIComponent(_userName),
+          isBusiness: item.isBusiness
+        }
+      })
+      
+      // 进入聊天页面后，清除该会话的未读数
+      const conversation = this.messageList.find(c => c.userId == item.userId)
+      if (conversation) {
+        conversation.unreadCount = 0
+      }
     },
     
     formatTime(timestamp) {

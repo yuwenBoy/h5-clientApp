@@ -52,6 +52,8 @@ const order = {
 	cancel:'/client/order/cancel',
 	// 订单支付
 	pay:'/client/order/pay',
+	// 订单统计
+	count:'/client/order/count',
 }
 
 // 支付相关接口

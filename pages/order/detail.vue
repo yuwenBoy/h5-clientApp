@@ -47,13 +47,17 @@
 					<text class="action-icon">🚴</text>
 					<text class="action-text">联系骑手</text>
 				</view>
+				<view class="action-item" @click="goReview" v-if="order.orderStatus === 5 && !order.isReviewed">
+					<text class="action-icon">⭐</text>
+					<text class="action-text">去评价</text>
+				</view>
 			</view>
 
 			<!-- 门店信息 + 商品列表 -->
 			<view class="section-card">
 				<view class="store-header" @click="toStore">
 					<text class="store-name">{{ order.storeName }}</text>
-					<text class="store-arrow">→</text>
+					<image class="store-arrow" src="/static/img/city-icon.png" mode="aspectFit" />
 				</view>
 				<view class="goods-list">
 					<view class="goods-item" v-for="(item, i) in order.goods" :key="i">
@@ -104,7 +108,8 @@
 			<view class="section-card">
 				<view class="card-header" @click="toggleOrderInfo">
 					<text class="card-title">订单信息</text>
-					<view class="expand-icon" :class="{ expanded: showOrderInfo }">▼</view>
+					<image class="expand-icon" :class="{ expanded: showOrderInfo }" src="/static/img/city-icon.png"
+						mode="aspectFit" />
 				</view>
 				<view class="order-info-content" v-show="showOrderInfo">
 					<view class="order-info-row">
@@ -238,7 +243,7 @@
 				return this.order.goods.reduce((sum, item) => sum + (item.count || 1), 0)
 			},
 			showContactMerchant() {
-				return [0, 1, 2, 3, 5].includes(this.order.orderStatus)
+				return [0, 1, 2, 3, 4, 5].includes(this.order.orderStatus)
 			}
 		},
 		onLoad(options) {
@@ -257,7 +262,7 @@
 		},
 		mounted() {
 			// 使用 $Route 获取参数，兼容多种方式
-			const query =this.$Route?.query || {}
+			const query = this.$Route?.query || {}
 			this.orderId = query.id
 			this.merchantUserId = query.merchantUserId
 			if (this.orderId) {
@@ -519,14 +524,14 @@
 
 				this.contactModalTitle = '联系骑手'
 				this.contactModalItems = [{
-						icon: '💬',
-						text: '在线联系',
-						action: 'chat'
-					},
-					{
 						icon: '📞',
 						text: '拨打电话',
 						action: 'call'
+					},
+					{
+						icon: '💬',
+						text: '在线联系',
+						action: 'chat'
 					}
 				]
 				this.contactModalSmallIcons = true
@@ -544,8 +549,14 @@
 				}
 
 				const riderName = '骑士' + this.order.riderName
-				uni.navigateTo({
-					url: `/pages/im/chat?userId=${this.order.riderId}&userName=${encodeURIComponent(riderName)}&orderId=${this.orderId}`
+				this.$Router.push({
+					path: '/pages/im/chat',
+					query: {
+						userId: this.order.riderId,
+						userName: encodeURIComponent(riderName),
+						orderId: this.orderId,
+						isBusiness: false,
+					}
 				})
 			},
 
@@ -587,6 +598,12 @@
 				}
 			},
 
+			goReview() {
+				uni.navigateTo({
+					url: `/pages/order/review?id=${this.order.id}`
+				})
+			},
+
 			copyOrderNo() {
 				uni.setClipboardData({
 					data: this.order.orderNo,
@@ -613,20 +630,19 @@
 
 			contactMerchant() {
 				const items = []
-
-				if (this.order.storeId || this.order.merchantId) {
-					items.push({
-						icon: '💬',
-						text: '在线联系',
-						action: 'chat'
-					})
-				}
-
 				if (this.order.storePhone) {
 					items.push({
 						icon: '📞',
 						text: '电话商家',
 						action: 'call'
+					})
+				}
+				
+				if (this.order.storeId || this.order.merchantId) {
+					items.push({
+						icon: '💬',
+						text: '在线联系',
+						action: 'chat'
 					})
 				}
 
@@ -654,14 +670,16 @@
 					return
 				}
 
-				let url =
-					`/pages/im/chat?userId=${this.merchantUserId}&userName=${encodeURIComponent(this.order.storeName)}&orderId=${this.orderId}`
-				if (this.order.userId) {
-					url += `&fromUserId=${this.order.userId}`
-				}
-
-				uni.navigateTo({
-					url: url
+				this.$Router.push({
+					path: '/pages/im/chat',
+					query: {
+						userId: this.merchantUserId,
+						userName: encodeURIComponent(this.order.storeName),
+						orderId: this.orderId,
+						isBusiness: true,
+						fromUserId: this.order.userId,
+						storeId: this.order.storeId
+					}
 				})
 			},
 
@@ -674,8 +692,11 @@
 
 			toStore() {
 				if (this.order.storeId) {
-					uni.navigateTo({
-						url: `/pages/store/detail?id=${this.order.storeId}`
+					this.$Router.push({
+						path: '/pages/home/storeDetail',
+						query: {
+							id: this.order.storeId,
+						}
 					})
 				} else {
 					uni.showToast({
@@ -840,8 +861,7 @@
 
 			.nav-status {
 				font-size: 30rpx;
-				font-weight: bold;
-				color: $text-primary;
+				color: #333;
 			}
 		}
 
@@ -862,8 +882,7 @@
 			flex: 1;
 			text-align: left;
 			font-size: 30rpx;
-			font-weight: bold;
-			color: transparent;
+			color: #333;
 		}
 
 		.nav-right {
@@ -896,8 +915,7 @@
 
 		.status-text {
 			font-size: 40rpx;
-			font-weight: bold;
-			color: $text-primary;
+			color: #333;
 		}
 
 		.status-arrow {
@@ -1012,8 +1030,8 @@
 			}
 
 			.expand-icon {
-				font-size: 24rpx;
-				color: $text-hint;
+				width: 32rpx;
+				height: 32rpx;
 				transition: transform 0.3s;
 
 				&.expanded {
@@ -1038,9 +1056,10 @@
 		}
 
 		.store-arrow {
-			font-size: 28rpx;
-			color: $text-hint;
+			width: 40rpx;
+			height: 40rpx;
 			margin-left: 8rpx;
+			transform: rotate(-90deg);
 		}
 	}
 

@@ -1,14 +1,5 @@
 <template>
   <view class="order-list-page">
-    <!-- 自定义导航栏 -->
-    <view class="custom-nav">
-      <view class="nav-back" @click="goBack">
-        <text class="back-arrow">‹</text>
-      </view>
-      <text class="nav-title">订单列表</text>
-      <view class="nav-right"></view>
-    </view>
-    
     <!-- 顶部状态切换 -->
     <view class="order-tab">
       <view 
@@ -106,46 +97,23 @@
               <button class="order-btn line" @click.stop="toDetail(order.id, order.merchantUserId)">
                 查看详情
               </button>
-              <button class="order-btn primary" @click.stop="contactMerchant(order)">
-                联系商家
-              </button>
             </template>
             <!-- 备货中 -->
             <template v-else-if="order.orderStatus === 2">
-              <button class="order-btn line" @click.stop="contactMerchant(order)">
-                联系商家
-              </button>
               <button class="order-btn primary" @click.stop="contactMerchant(order)">
                 催单
               </button>
             </template>
             <!-- 待配送 -->
             <template v-else-if="order.orderStatus === 3">
-              <button class="order-btn line" @click.stop="contactMerchant(order)">
-                联系商家
-              </button>
               <button class="order-btn primary" @click.stop="viewDelivery(order)">
                 配送信息
               </button>
             </template>
-            <!-- 配送中 -->
-            <template v-else-if="order.orderStatus === 4">
-              <button class="order-btn line" @click.stop="contactRider(order)">
-                联系骑手
-              </button>
-              <button class="order-btn primary" @click.stop="confirmReceipt(order, index)">
-                确认收货
-              </button>
-            </template>
+
             <!-- 已完成 -->
             <template v-else-if="order.orderStatus === 5">
-              <button class="order-btn line" @click.stop="contactMerchant(order)">
-                联系商家
-              </button>
-              <button class="order-btn primary" v-if="!order.isReviewed" @click.stop="goReview(order)">
-                去评价
-              </button>
-              <button class="order-btn primary" v-else @click.stop="toDetail(order.id, order.merchantUserId)">
+              <button class="order-btn primary" @click.stop="toDetail(order.id, order.merchantUserId)">
                 查看详情
               </button>
             </template>
@@ -758,53 +726,6 @@ $primary: #ff6b35;
   background: #f5f5f5;
   display: flex;
   flex-direction: column;
-  padding-top: calc(var(--status-bar-height) + 88rpx);
-}
-
-// 自定义导航栏
-.custom-nav {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: calc(var(--status-bar-height) + 88rpx);
-  background: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--status-bar-height) 30rpx 0;
-  z-index: 999;
-  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
-  
-  .nav-back {
-    width: 60rpx;
-    height: 60rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    
-    .back-arrow {
-      font-size: 48rpx;
-      color: #000;
-      font-weight: 500;
-      line-height: 1;
-      margin-left: -8rpx;
-    }
-    
-    &:active {
-      opacity: 0.6;
-    }
-  }
-  
-  .nav-title {
-    font-size: 36rpx;
-    font-weight: 600;
-    color: #333;
-  }
-  
-  .nav-right {
-    width: 60rpx;
-  }
 }
 
 // 顶部tab
@@ -947,16 +868,7 @@ $primary: #ff6b35;
 
     .order-status {
       font-size: 26rpx;
-      font-weight: bold;
-
-      &.wait-pay { color: #ff4d4f; }
-      &.wait-accept { color: #ff6b35; }
-      &.preparing { color: #faad14; }
-      &.wait-delivery { color: #1890ff; }
-      &.delivering { color: #52c41a; }
-      &.finished { color: #52c41a; }
-      &.canceled { color: #999; }
-      &.refunded { color: #999; }
+      color: #333;
     }
   }
 

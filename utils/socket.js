@@ -41,6 +41,7 @@ const socketClient = {
    */
   send(event, data) {
     if (socket) {
+      console.log(`📤 WebSocket发送消息: event=${event}, data=${JSON.stringify(data)}`);
       socket.emit(event, data);
     } else {
       console.error('WebSocket未连接');

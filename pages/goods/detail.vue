@@ -1,14 +1,23 @@
  <template>
-   <view class="flash-goods-page">
-     <!-- 加载状态 -->
-     <view class="loading-container" v-if="loading">
-       <view class="loading-spinner"></view>
-       <view class="loading-text">加载中...</view>
-     </view>
-     
-     <!-- 商品内容 -->
-     <template v-else>
-       <!-- 轮播图 -->
+  <view class="flash-goods-page">
+    <!-- 导航栏 -->
+    <nav-bar 
+      type="black" 
+      :title="goods.name" 
+      :showBack="true"
+      :showStoreIcon="!!goods.storeId"
+      :storeId="goods.storeId"
+    ></nav-bar>
+    
+    <!-- 加载状态 -->
+    <view class="loading-container" v-if="loading">
+      <view class="loading-spinner"></view>
+      <view class="loading-text">加载中...</view>
+    </view>
+    
+    <!-- 商品内容 -->
+    <template v-else>
+      <!-- 轮播图 -->
        <view class="swiper-wrap">
          <swiper class="swiper" :indicator-dots="true" circular :autoplay="false">
            <swiper-item v-for="(img, idx) in images" :key="idx">

@@ -22,7 +22,9 @@
 					<text class="fs34 title" :class="fwb?'fwb':''">{{ title }}</text>
 				</view>
 				<!-- right -->
-				<view class="team-navBar-header-right"></view>
+				<view class="team-navBar-header-right">
+					<view v-if="showStoreIcon" class="store-icon" @click="goToStore"></view>
+				</view>
 			</view>
 		</view>
 	</view>
@@ -63,6 +65,14 @@
 			intercept: {
 				type: Boolean,
 				default:false
+			},
+			showStoreIcon: {
+				type: Boolean,
+				default: false
+			},
+			storeId: {
+				type: String,
+				default: ''
 			}
 		},
 		data() {
@@ -95,6 +105,13 @@
 								url: '/pages/home/home'
 							});
 						}
+					})
+				}
+			},
+			goToStore() {
+				if (this.storeId) {
+					uni.navigateTo({
+						url: `/pages/home/storeDetail?id=${this.storeId}`
 					})
 				}
 			}
@@ -217,5 +234,21 @@
 			display: inline-block;
 			transform: rotate(180deg);
 		}
+		.store-icon {
+			background: url('https://img.app.fuduoka.com/h5/img/icon/white_store.png') no-repeat;
+			background-size: 44upx 44upx;
+			background-position: center;
+			width: 60upx;
+			height: 60upx;
+			display: inline-block;
+		}
+	}
+	.store-icon {
+		background: url(../../static/img/store-icon.png) no-repeat;
+		background-size: 44upx 44upx;
+		background-position: center;
+		width: 60upx;
+		height: 60upx;
+		display: inline-block;
 	}
 </style>
