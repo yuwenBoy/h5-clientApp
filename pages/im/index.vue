@@ -2,7 +2,10 @@
   <view class="message-list">
     <view class="message-container">
       <view class="message-item" v-for="(item, index) in messageList" :key="index" @click="goToChat(item)">
-        <image class="avatar" :src="item.avatar || '/static/logo.png'" mode="aspectFill" />
+        <view class="avatar-wrapper">
+          <image class="avatar" :src="item.avatar || '/static/logo.png'" mode="aspectFill" />
+          <view class="unread-badge" v-if="item.unreadCount > 0">{{ item.unreadCount > 99 ? '99+' : item.unreadCount }}</view>
+        </view>
         <view class="message-content">
           <view class="message-header">
             <text class="name">{{ item.userId == 19 ? '系统客服':item.name }}</text>
@@ -10,7 +13,6 @@
           </view>
           <view class="message-body">
             <text class="last-message">{{ item.lastMessage }}</text>
-            <text class="unread-count" v-if="item.unreadCount > 0">{{ item.unreadCount > 99 ? '99+' : item.unreadCount }}</text>
           </view>
         </view>
       </view>
@@ -71,10 +73,32 @@ export default {
     initWebSocket() {
       // 等待 socket.io 客户端加载完成
       this.waitForSocketIO(() => {
+        // 先初始化WebSocket连接（如果尚未连接）
+        const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
+        const host = location.hostname
+        const port = '9000'
+        const socketUrl = `${protocol}//${host}:${port}`
+        socketClient.init(socketUrl, this.currentUserId)
+        
+        // 添加新消息监听
         socketClient.on('new_message', (message) => {
           console.log('消息列表页收到新消息:', message)
           // 更新消息列表中的未读数量
           this.handleNewMessage(message)
+        })
+        
+        // 添加消息更新监听（用于更新会话列表和未读角标）
+        socketClient.on('message_update', (update) => {
+          console.log('消息列表页收到消息更新:', update)
+          // 如果有未读数量，更新对应会话的未读数量
+          if (update.unreadCount !== undefined) {
+            const conversation = this.messageList.find(item => item.userId == update.senderId)
+            if (conversation) {
+              conversation.unreadCount = update.unreadCount
+            }
+          }
+          // 刷新消息列表（重新从数据库获取最新数据）
+          this.getMessageList()
         })
       })
     },
@@ -196,12 +220,30 @@ export default {
   border-radius: 16rpx;
   margin-bottom: 20rpx;
   
-  .avatar {
-    width: 100rpx;
-    height: 100rpx;
-    border-radius: 50%;
+  .avatar-wrapper {
+    position: relative;
     margin-right: 24rpx;
     flex-shrink: 0;
+    
+    .avatar {
+      width: 100rpx;
+      height: 100rpx;
+      border-radius: 50%;
+    }
+    
+    .unread-badge {
+      position: absolute;
+      top: 0;
+      right: 0;
+      background: #ff4d4f;
+      color: #fff;
+      font-size: 20rpx;
+      padding: 4rpx 12rpx;
+      border-radius: 20rpx;
+      min-width: 32rpx;
+      text-align: center;
+      transform: translate(25%, -25%);
+    }
   }
   
   .message-content {
@@ -238,17 +280,6 @@ export default {
         text-overflow: ellipsis;
         white-space: nowrap;
         flex: 1;
-      }
-      
-      .unread-count {
-        background: #ff4d4f;
-        color: #fff;
-        font-size: 20rpx;
-        padding: 4rpx 12rpx;
-        border-radius: 20rpx;
-        min-width: 32rpx;
-        text-align: center;
-        margin-left: 16rpx;
       }
     }
   }

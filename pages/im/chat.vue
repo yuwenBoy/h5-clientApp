@@ -108,10 +108,39 @@
 			// 只有当有目标用户时才初始化WebSocket
 			if (this.userId && this.currentUserId) {
 				this.getMessageHistory()
-				this.markAsRead()
 				this.initWebSocket()
 			} else {
 				console.error('缺少必要参数：userId或currentUserId为空')
+			}
+		},
+		
+		onShow() {
+			// 添加页面可见性监听（不自动发送已读标记）
+			this.addVisibilityListener()
+		},
+		
+		onHide() {
+			// 页面隐藏时移除监听
+			this.removeVisibilityListener()
+		},
+		
+		addVisibilityListener() {
+			// 监听页面可见性变化
+			document.addEventListener('visibilitychange', this.handleVisibilityChange)
+			// 立即检查一次页面可见性
+			this.handleVisibilityChange()
+		},
+		
+		removeVisibilityListener() {
+			// 移除页面可见性监听
+			document.removeEventListener('visibilitychange', this.handleVisibilityChange)
+		},
+		
+		handleVisibilityChange() {
+			// 当页面从隐藏变为可见时发送已读标记
+			if (!document.hidden && this.userId && this.currentUserId) {
+				console.log('页面变为可见，发送已读标记')
+				this.sendMarkAsRead()
 			}
 		},
 		mounted() {
@@ -151,6 +180,17 @@
 						this.messageList.forEach((msg, idx) => {
 							console.log(`消息${idx}: senderId=${msg.senderId}, content=${msg.content}`)
 						})
+						
+						// 将当前用户发送的消息设置为已读显示（用户自己发送的消息在打开聊天窗口时就显示已读）
+						this.messageList = this.messageList.map(msg => {
+							const senderId = parseInt(msg.senderId || msg.fromUserId || msg.fromId || 0)
+							const currentId = parseInt(this.currentUserId)
+							if (senderId === currentId) {
+								return { ...msg, isRead: true }
+							}
+							return msg
+						})
+						
 						this.$nextTick(() => {
 							this.scrollToBottom()
 						})
@@ -212,7 +252,7 @@
 					content: content,
 					createTime: Date.now(),
 					orderId: this.orderId ? parseInt(this.orderId) : null,
-					isRead: false // 初始状态为未读
+					isRead: false // 发送时始终显示未读，等待对方打开窗口发送已读回执
 				}
 
 				this.messageList.push(tempMessage)
@@ -275,7 +315,8 @@
 					})
 
 					socketClient.on('message_read', (data) => {
-						console.log('收到已读通知:', data)
+						console.log('========== 收到已读通知 ==========')
+						console.log('message_read - 数据:', data)
 						this.handleReadMessage(data)
 					})
 
@@ -315,8 +356,10 @@
 						this.$nextTick(() => {
 							this.scrollToBottom()
 						})
-						// 标记已读
-						this.markAsRead()
+						// 只有当页面可见时才发送已读标记
+						if (!document.hidden) {
+							this.sendMarkAsRead()
+						}
 					}
 				}
 			},

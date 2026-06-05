@@ -12,7 +12,13 @@ const socketClient = {
   init(url, uid) {
     userId = uid;
     
-    // 如果已存在连接，先断开
+    // 如果已存在连接且已连接，不重新初始化
+    if (socket && socket.connected) {
+      console.log('WebSocket已连接，无需重新初始化');
+      return;
+    }
+    
+    // 如果已存在连接但未连接，先断开
     if (socket) {
       socket.disconnect();
       socket = null;
