@@ -32,7 +32,8 @@ export default {
   data() {
     return {
       messageList: [],
-      currentUserId: ''
+      currentUserId: '',
+      wasDisconnected: false,
     }
   },
   
@@ -48,7 +49,10 @@ export default {
   
   onUnload() {
     // 页面卸载时移除监听
+    socketClient.off('connect')
+    socketClient.off('disconnect')
     socketClient.off('new_message')
+    socketClient.off('message_update')
   },
   
   onPullDownRefresh() {
@@ -79,14 +83,30 @@ export default {
         const port = '9000'
         const socketUrl = `${protocol}//${host}:${port}`
         socketClient.init(socketUrl, this.currentUserId)
-        
+
+        // 连接事件（含重连）
+        socketClient.on('connect', () => {
+          console.log('消息列表页 - WebSocket连接成功')
+          // 断线重连后，重新拉取消息列表
+          if (this.wasDisconnected) {
+            console.log('消息列表页 - WebSocket重连，重新拉取消息列表')
+            this.wasDisconnected = false
+            this.getMessageList()
+          }
+        })
+
+        socketClient.on('disconnect', () => {
+          console.log('消息列表页 - WebSocket断开连接')
+          this.wasDisconnected = true
+        })
+
         // 添加新消息监听
         socketClient.on('new_message', (message) => {
           console.log('消息列表页收到新消息:', message)
           // 更新消息列表中的未读数量
           this.handleNewMessage(message)
         })
-        
+
         // 添加消息更新监听（用于更新会话列表和未读角标）
         socketClient.on('message_update', (update) => {
           console.log('消息列表页收到消息更新:', update)

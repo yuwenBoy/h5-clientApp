@@ -558,6 +558,10 @@
  
 			// 确认加入购物车
 			confirmAddCart() {
+				if (!this.isBusinessOpen) {
+					this.showClosedToast()
+					return
+				}
 				if (!this.currentGood) return
 				
 				const specText = this.selectedSpecText
@@ -673,12 +677,20 @@
  			},
  
 			increaseCartItem(index) {
+				if (!this.isBusinessOpen) {
+					this.showClosedToast()
+					return
+				}
 				this.cartList[index].count++
 				// 同步到本地存储
 				uni.setStorageSync('cartList', this.cartList)
 			},
- 
+
 			decreaseCartItem(index) {
+				if (!this.isBusinessOpen) {
+					this.showClosedToast()
+					return
+				}
 				const item = this.cartList[index]
 				item.count > 1 ? item.count-- : this.cartList.splice(index, 1)
 				if (this.cartList.length === 0) {
@@ -704,6 +716,10 @@
 			},
  
 			submitOrder() {
+				if (!this.isBusinessOpen) {
+					this.showClosedToast()
+					return
+				}
 				if (!this.canSubmit) return
 				uni.setStorageSync('cartList', this.cartList)
 				uni.setStorageSync('storeInfo', this.storeInfo)

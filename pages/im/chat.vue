@@ -12,35 +12,43 @@
 			</view>
 		</view>
 
-		<scroll-view class="chat-content" scroll-y :scroll-into-view="scrollIntoView" :scroll-with-animation="false">
-			<view class="message-list">
-				<view v-for="(msg, index) in messageList" :key="index">
-					<!-- 时间戳居中显示 -->
-					<view class="time-divider">
-						<text class="time-text">{{ formatMessageTime(msg.createTime) }}</text>
+		<scroll-view class="chat-content" scroll-y :scroll-into-view="scrollIntoView" :scroll-with-animation="false"
+				@scrolltoupper="loadMoreMessages" :upper-threshold="50">
+				<view class="message-list">
+					<!-- 加载更多提示 -->
+					<view class="load-more-tip" v-if="loadingMore">
+						<text>加载中...</text>
 					</view>
-					<view class="message-item" :id="'msg-' + index"
-						:class="isSelfMessage(msg) ? 'message-self' : 'message-other'">
-						<image class="avatar" :src="isSelfMessage(msg) ? currentUserAvatar : targetUserAvatar" mode="aspectFill" />
-						<view class="message-wrapper">
-							<view class="message-bubble">
-								<text class="message-text">{{ msg.content }}</text>
-							</view>
-							<!-- 已读/未读状态 -->
-							<view class="read-status" v-if="isSelfMessage(msg)">
-								<text class="read-text" :class="{ 'read': msg.isRead }">
-									{{ msg.isRead ? '已读' : '未读' }}
-								</text>
+					<view class="load-more-tip" v-else-if="!hasMore && messageList.length > 0">
+						<text>没有更多消息了</text>
+					</view>
+					<view v-for="(msg, index) in messageList" :key="msg.id || index">
+						<!-- 时间戳居中显示 -->
+						<view class="time-divider">
+							<text class="time-text">{{ formatMessageTime(msg.createTime) }}</text>
+						</view>
+						<view class="message-item" :id="'msg-' + (msg.id || index)"
+							:class="isSelfMessage(msg) ? 'message-self' : 'message-other'">
+							<image class="avatar" :src="isSelfMessage(msg) ? currentUserAvatar : targetUserAvatar" mode="aspectFill" />
+							<view class="message-wrapper">
+								<view class="message-bubble">
+									<text class="message-text">{{ msg.content }}</text>
+								</view>
+								<!-- 已读/未读状态 -->
+								<view class="read-status" v-if="isSelfMessage(msg)">
+									<text class="read-text" :class="{ 'read': msg.isRead }">
+										{{ msg.isRead ? '已读' : '未读' }}
+									</text>
+								</view>
 							</view>
 						</view>
 					</view>
-				</view>
 
-				<view class="empty-state" v-if="messageList.length === 0">
-					<text class="empty-text">暂无消息，开始聊天吧</text>
+					<view class="empty-state" v-if="messageList.length === 0">
+						<text class="empty-text">暂无消息，开始聊天吧</text>
+					</view>
 				</view>
-			</view>
-		</scroll-view>
+			</scroll-view>
 
 		<view class="chat-footer">
 			<view class="input-wrapper">
@@ -57,22 +65,29 @@
 
 	export default {
 		data() {
-			return {
-				userId: '',
-				userName: '',
-				userAvatar: '',
-				orderId: '',
-				currentUserId: '',
-				currentUserAvatar: '',
-				targetUserAvatar: '',
-				messageList: [],
-				inputMessage: '',
-				scrollIntoView: '',
-				socketConnected: false,
-				isBusiness: false,
-				storeId: null, // 门店id
-			}
-		},
+				return {
+					userId: '',
+					userName: '',
+					userAvatar: '',
+					orderId: '',
+					currentUserId: '',
+					currentUserAvatar: '',
+					targetUserAvatar: '',
+					messageList: [],
+					inputMessage: '',
+					scrollIntoView: '',
+					socketConnected: false,
+					isBusiness: false,
+					storeId: null, // 门店id
+					// 分页相关
+					page: 1,
+					pageSize: 20,
+					hasMore: true,
+					loadingMore: false,
+					// 重连相关
+					wasDisconnected: false,
+				}
+			},
 
 		onLoad(options) {
 			// 使用 $Route 获取参数，兼容多种方式
@@ -117,6 +132,10 @@
 		onShow() {
 			// 添加页面可见性监听（不自动发送已读标记）
 			this.addVisibilityListener()
+			// 通过HTTP标记已读（兜底，确保数据库更新）
+			if (this.userId && this.currentUserId) {
+				this.markAsRead()
+			}
 		},
 		
 		onHide() {
@@ -169,20 +188,29 @@
 				})
 			},
 
-			async getMessageHistory() {
+			async getMessageHistory(isLoadMore = false) {
+				if (this.loadingMore) return
+				this.loadingMore = true
+
 				try {
+					// 加载更多时，记录当前第一条消息ID用于恢复滚动位置
+					let firstMsgId = null
+					if (isLoadMore && this.messageList.length > 0) {
+						firstMsgId = this.messageList[0].id
+					}
+
 					const res = await this.$request.post(this.$apis.message.history, {
-						targetUserId: parseInt(this.userId)
+						targetUserId: parseInt(this.userId),
+						page: isLoadMore ? this.page + 1 : 1,
+						pageSize: this.pageSize
 					})
+
 					if (res.success && res.result) {
-						this.messageList = res.result
-						console.log('获取消息历史 - 消息列表:', JSON.stringify(this.messageList))
-						this.messageList.forEach((msg, idx) => {
-							console.log(`消息${idx}: senderId=${msg.senderId}, content=${msg.content}`)
-						})
-						
-						// 将当前用户发送的消息设置为已读显示（用户自己发送的消息在打开聊天窗口时就显示已读）
-						this.messageList = this.messageList.map(msg => {
+						const newMessages = res.result.list || []
+						this.hasMore = res.result.hasMore
+
+						// 将当前用户发送的消息设置为已读显示
+						const processedMessages = newMessages.map(msg => {
 							const senderId = parseInt(msg.senderId || msg.fromUserId || msg.fromId || 0)
 							const currentId = parseInt(this.currentUserId)
 							if (senderId === currentId) {
@@ -190,19 +218,40 @@
 							}
 							return msg
 						})
-						
-						this.$nextTick(() => {
-							this.scrollToBottom()
-						})
-						// 延迟发送已读标记，确保消息列表已更新且WebSocket已连接
-						setTimeout(() => {
-							this.sendMarkAsRead()
-						}, 500)
-					} else {
-						console.log('获取消息历史 - 响应不成功或无数据:', res)
+
+						if (isLoadMore) {
+							// 加载更多：前置旧消息
+							this.page++
+							this.messageList = [...processedMessages, ...this.messageList]
+							// 恢复滚动位置到之前的第一条消息
+							this.$nextTick(() => {
+								if (firstMsgId) {
+									this.scrollIntoView = 'msg-' + firstMsgId
+								}
+							})
+						} else {
+							// 首次加载
+							this.page = 1
+							this.messageList = processedMessages
+							this.$nextTick(() => {
+								this.scrollToBottom()
+							})
+							// 延迟发送已读标记
+							setTimeout(() => {
+								this.sendMarkAsRead()
+							}, 500)
+						}
 					}
 				} catch (error) {
 					console.error('获取消息历史失败:', error)
+				} finally {
+					this.loadingMore = false
+				}
+			},
+
+			loadMoreMessages() {
+				if (this.hasMore && !this.loadingMore) {
+					this.getMessageHistory(true)
 				}
 			},
 
@@ -295,14 +344,28 @@
 					console.log('WebSocket连接地址:', socketUrl)
 					socketClient.init(socketUrl, this.currentUserId)
 
+					// 检查是否已经连接（从消息列表页进入时socket可能已连接）
+					if (socketClient.isConnected()) {
+						console.log('WebSocket已连接，直接设置连接状态')
+						this.socketConnected = true
+					}
+
 					socketClient.on('connect', () => {
 						console.log('WebSocket连接成功')
 						this.socketConnected = true
+						// 断线重连后，重新拉取离线期间的消息
+						if (this.wasDisconnected) {
+							console.log('WebSocket重连，重新拉取消息')
+							this.wasDisconnected = false
+							this.getMessageHistory()
+							this.sendMarkAsRead()
+						}
 					})
 
 					socketClient.on('disconnect', () => {
 						console.log('WebSocket断开连接')
 						this.socketConnected = false
+						this.wasDisconnected = true
 					})
 
 					socketClient.on('new_message', (message) => {
@@ -408,7 +471,9 @@
 				try {
 					socketClient.off('connect')
 					socketClient.off('disconnect')
-					socketClient.off('message')
+					socketClient.off('new_message')
+					socketClient.off('message_sent')
+					socketClient.off('message_read')
 					socketClient.off('error')
 				} catch (error) {
 					console.error('关闭WebSocket监听失败:', error)
@@ -416,10 +481,11 @@
 			},
 
 			scrollToBottom() {
-				if (this.messageList.length > 0) {
-					this.scrollIntoView = 'msg-' + (this.messageList.length - 1)
-				}
-			},
+					if (this.messageList.length > 0) {
+						const lastMsg = this.messageList[this.messageList.length - 1]
+						this.scrollIntoView = 'msg-' + (lastMsg.id || (this.messageList.length - 1))
+					}
+				},
 
 			formatMessageTime(timestamp) {
 				if (!timestamp) return ''
@@ -458,6 +524,13 @@
 		display: flex;
 		flex-direction: column;
 		background: #f5f5f5;
+	}
+
+	.load-more-tip {
+		text-align: center;
+		padding: 20rpx 0;
+		font-size: 24rpx;
+		color: #999;
 	}
 
 	.chat-header {
